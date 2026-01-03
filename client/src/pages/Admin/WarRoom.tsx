@@ -48,10 +48,25 @@ const WarRoom: React.FC = () => {
                     {/* Map Container */}
                     <div className="flex-1 relative bg-slate-100">
                         <MapContainer
-                            // We can pass different center/zoom if needed based on selected river
                             center={[20.5937, 78.9629]}
                             zoom={5}
-                            floodZones={[{ lat: 20.5937, lng: 78.9629, radius: 250000, severity: 'HIGH' }]}
+                            floodZones={[
+                                { lat: 20.5937, lng: 78.9629, radius: 250000, severity: 'HIGH' },
+                                { lat: 19.0760, lng: 72.8777, radius: 150000, severity: 'MODERATE' } // Mumbai
+                            ]}
+                            villages={[
+                                { id: 'v1', name: 'Rampur', lat: 20.6, lng: 79.0, status: 'CRITICAL' },
+                                { id: 'v2', name: 'Shyamnagar', lat: 20.5, lng: 78.9, status: 'WARNING' },
+                                { id: 'v3', name: 'Safe Haven', lat: 20.4, lng: 78.8, status: 'SAFE' }
+                            ]}
+                            shelters={[
+                                { id: 's1', name: 'Community Center', lat: 20.55, lng: 78.95, capacity: 500 },
+                                { id: 's2', name: 'High School', lat: 20.45, lng: 78.85, capacity: 1000 }
+                            ]}
+                            responseTeams={[
+                                { id: 't1', name: 'NDRF Team A', lat: 20.58, lng: 78.98, status: 'AVAILABLE' },
+                                { id: 't2', name: 'Fire Rescue 1', lat: 20.52, lng: 78.92, status: 'BUSY' }
+                            ]}
                         />
 
                         {/* Floating Map Controls */}

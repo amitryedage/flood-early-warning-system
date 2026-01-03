@@ -1,6 +1,8 @@
 import React from 'react';
-import { AlertTriangle, Home, CheckCircle, Users, Clock, TrendingUp, TrendingDown } from 'lucide-react';
+import { AlertTriangle, Home, CheckCircle, Users, TrendingUp, TrendingDown, CloudRain } from 'lucide-react';
 import type { MetricCardConfig } from '../../types/admin.types';
+
+import { getWeather } from '../../services/weatherService';
 
 const metrics: MetricCardConfig[] = [
     {
@@ -50,12 +52,12 @@ const metrics: MetricCardConfig[] = [
     },
     {
         id: '6',
-        title: 'AVG RESPONSE',
-        value: '18m',
-        subtitle: '-2m from last week',
-        icon: Clock,
+        title: 'CURRENT WEATHER',
+        value: 'Loading...',
+        subtitle: 'Local Conditions',
+        icon: CloudRain,
         color: 'purple',
-        trend: 'down'
+        trend: 'neutral'
     }
 ];
 
@@ -84,9 +86,42 @@ const getIconBg = (color: string) => {
 }
 
 const KeyMetricsGrid: React.FC = () => {
+    const [displayMetrics, setDisplayMetrics] = React.useState(metrics);
+
+    React.useEffect(() => {
+        const fetchWeather = async () => {
+            // India Center coordinates or relevant location
+            const data = await getWeather(20.5937, 78.9629);
+            if (data) {
+                setDisplayMetrics(prev => prev.map(m => {
+                    if (m.id === '6') {
+                        return {
+                            ...m,
+                            value: `${data.temp.toFixed(1)}°C`,
+                            subtitle: `${data.condition}, Hum: ${data.humidity}%`,
+                            trend: data.rainfall > 0 ? 'up' : 'neutral'
+                        };
+                    }
+                    return m;
+                }));
+            } else {
+                setDisplayMetrics(prev => prev.map(m => {
+                    if (m.id === '6') {
+                        return { ...m, value: 'N/A', subtitle: 'Service Unavailable' };
+                    }
+                    return m;
+                }));
+            }
+        };
+
+        fetchWeather();
+        const interval = setInterval(fetchWeather, 300000); // 5 mins
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-            {metrics.map((metric) => (
+            {displayMetrics.map((metric) => (
                 <div
                     key={metric.id}
                     className={`relative p-4 rounded-xl border bg-gradient-to-br bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 ${getColorClasses(metric.color)}`}
@@ -95,8 +130,8 @@ const KeyMetricsGrid: React.FC = () => {
                         <div className={`p-2 rounded-lg ${getIconBg(metric.color)}`}>
                             <metric.icon className="w-5 h-5" />
                         </div>
-                        {metric.trend === 'up' && <TrendingUp className="w-4 h-4 text-red-500" />}
-                        {metric.trend === 'down' && <TrendingDown className="w-4 h-4 text-emerald-500" />}
+                        {metric.trend === 'up' && <TrendingUp className="w-4 h-4" />}
+                        {metric.trend === 'down' && <TrendingDown className="w-4 h-4" />}
                     </div>
 
                     <div>
