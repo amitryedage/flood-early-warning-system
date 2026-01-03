@@ -1,31 +1,28 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import AdminNavbar from '../components/Admin/Navbar';
+import AdminSidebar from '../components/Admin/Sidebar';
 
 const AdminLayout: React.FC = () => {
     return (
-        <div className="relative w-screen h-screen bg-slate-950 overflow-hidden text-slate-200 selection:bg-cyan-500/30">
-            {/* Background Map Layer (Z-0) */}
-            <div className="absolute inset-0 z-0 bg-slate-900">
-                {/* Map Component will be injected here via Outlet or Context if it's shared, 
-            but usually the Page handles the main content. 
-            For the War Room, the Map IS the Page content. 
-        */}
-                <div className="grid place-items-center h-full text-slate-600">
-                    Loading Global Satellite Feed...
+        <div className="h-screen overflow-hidden bg-slate-50 relative">
+            {/* 1. Fixed Top Navbar (z-50) */}
+            <AdminNavbar />
+
+            {/* 2. Fixed Sidebar (z-40) */}
+            <AdminSidebar />
+
+            {/* 3. Main Content Area */}
+            {/* Height is full screen, but we manage scroll internally using overflow-y-auto */}
+            <main className="h-full pt-[70px] pl-[280px] overflow-y-auto transition-all duration-300">
+                <div className="p-6 min-h-full flex flex-col">
+                    {/* The War Room dashboard or other admin pages render here */}
+                    <Outlet />
                 </div>
-            </div>
+            </main>
 
-            {/* Main Content Overlay (Z-10) */}
-            <div className="relative z-10 w-full h-full pointer-events-none">
-                {/* Child routes (Like WarRoom.tsx) inject their interactive elements here.
-            They need 'pointer-events-auto' on their interactive parts.
-        */}
-                <Outlet />
-            </div>
-
-            {/* Global Overlay Elements (Scanlines, Vignette) */}
-            <div className="absolute inset-0 pointer-events-none z-50 bg-[url('/scanlines.png')] opacity-10 mix-blend-overlay"></div>
-            <div className="absolute inset-0 pointer-events-none z-40 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40"></div>
+            {/* Mobile Overlay (Optional for future) */}
+            {/* <div className="fixed inset-0 bg-black/50 z-30 lg:hidden"></div> */}
         </div>
     );
 };

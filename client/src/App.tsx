@@ -3,13 +3,16 @@ import AdminLayout from './layouts/AdminLayout';
 import PublicLayout from './layouts/PublicLayout';
 import ResponderLayout from './layouts/ResponderLayout';
 import WarRoom from './pages/Admin/WarRoom';
+import Dashboard from './pages/Public/Dashboard';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<PublicLayout />} />
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Dashboard />} />
+        </Route>
 
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminLayout />}>

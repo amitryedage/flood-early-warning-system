@@ -1,82 +1,92 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Layers, CloudRain, Activity, Database, ZoomIn, ZoomOut, Maximize, RotateCcw, RefreshCw } from 'lucide-react';
 import MapContainer from '../../components/Map/MapContainer';
-import SystemStatus from '../../components/Overlay/SystemStatus';
-import SimulationPanel from '../../components/Controls/SimulationPanel';
-
-// Type Definition
-interface Zone {
-    lat: number;
-    lng: number;
-    radius: number;
-    severity: 'MODERATE' | 'HIGH';
-}
-
-// Mock Data for the Demo
-const INITIAL_ZONES: Zone[] = [
-    { lat: 20.5937, lng: 78.9629, radius: 250000, severity: 'MODERATE' },
-];
+import CriticalAlertBanner from '../../components/Admin/CriticalAlertBanner';
+import KeyMetricsGrid from '../../components/Admin/KeyMetricsGrid';
+import RightPanelTabs from '../../components/Admin/RightPanelTabs';
 
 const WarRoom: React.FC = () => {
-    // Demo State
-    const [waterLevel, setWaterLevel] = useState(12.4);
-    const [rainfall, setRainfall] = useState(45);
-    const [status, setStatus] = useState<'NORMAL' | 'WARNING' | 'CRITICAL'>('NORMAL');
-    const [zones, setZones] = useState<Zone[]>(INITIAL_ZONES);
-
-    // Simulation Effect (The "Demo Mode")
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // Logic: If status is manually set to critical via simulation panel (indirectly via props if I wired it back? 
-            // Actually the SimulationPanel props change state here.
-            // But we also want auto-update? 
-            // For now, let's just let the simulation panel control it mostly, or have this run "simulation" if not paused.
-            // I'll keep the auto-increment for the "Live" feel.
-
-            setWaterLevel(prev => {
-                // If it's already critical, maybe don't loop forever, but fluctuate
-                const noise = (Math.random() - 0.3) * 0.1;
-                const newVal = prev + (prev < 15 ? 0.05 : 0) + noise;
-
-                // Trigger alerts based on level
-                if (newVal > 14.0) setStatus('CRITICAL');
-                else if (newVal > 13.0) setStatus('WARNING');
-                else setStatus('NORMAL');
-
-                return newVal;
-            });
-
-            setRainfall(prev => prev + (Math.random() - 0.5) * 5);
-
-            // Update zones based on status
-            setZones(prev => prev.map(z => ({
-                ...z,
-                radius: status === 'CRITICAL' ? 400000 : 250000,
-                severity: status === 'CRITICAL' ? 'HIGH' : 'MODERATE'
-            })));
-
-        }, 2000);
-
-        return () => clearInterval(interval);
-    }, [status]); // Depend on status to trigger re-eval of logic if needed
+    // Search/Filter state could live here or in context
+    const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
     return (
-        <div className="relative w-full h-full">
-            {/* Floating Overlays */}
-            <SystemStatus status={status} waterLevel={waterLevel} rainfall={Math.floor(rainfall)} />
+        <div className="flex flex-col h-full space-y-6">
 
-            {/* Map Background */}
-            <div className="absolute inset-0 z-0">
-                <MapContainer floodZones={zones} />
+            {/* 1. Critical Alert Banner (Conditional) */}
+            <CriticalAlertBanner />
+
+            {/* 2. Key Metrics Grid */}
+            <KeyMetricsGrid />
+
+            {/* 3. Main Content Split: Map (70%) & Details (30%) */}
+            <div className={`flex flex-col lg:flex-row gap-6 ${isMapFullscreen ? 'fixed inset-0 z-50 bg-white p-4' : 'flex-1 min-h-[600px]'}`}>
+
+                {/* LEFT: MAP SECTION */}
+                <div className={`flex flex-col bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative transition-all duration-300 ${isMapFullscreen ? 'w-full h-full' : 'flex-1'}`}>
+
+                    {/* Map Header Controls */}
+                    <div className="h-[50px] border-b border-slate-100 flex items-center justify-between px-4 bg-slate-50/50">
+                        <div className="flex items-center gap-2">
+                            <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-sky-600 transition-colors">
+                                <Layers className="w-3.5 h-3.5" /> Stations
+                            </button>
+                            <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-sky-600 transition-colors">
+                                <CloudRain className="w-3.5 h-3.5" /> Rainfall
+                            </button>
+                            <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-sky-600 transition-colors">
+                                <Activity className="w-3.5 h-3.5" /> Predictions
+                            </button>
+                            <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-sky-600 transition-colors">
+                                <Database className="w-3.5 h-3.5" /> Data
+                            </button>
+                        </div>
+                        <div className="text-xs text-slate-400 font-mono">
+                            LIVE UPDATES ON
+                        </div>
+                    </div>
+
+                    {/* Map Container */}
+                    <div className="flex-1 relative bg-slate-100">
+                        <MapContainer
+                            // We can pass different center/zoom if needed based on selected river
+                            center={[20.5937, 78.9629]}
+                            zoom={5}
+                            floodZones={[{ lat: 20.5937, lng: 78.9629, radius: 250000, severity: 'HIGH' }]}
+                        />
+
+                        {/* Floating Map Controls */}
+                        <div className="absolute bottom-6 right-6 flex flex-col gap-2 z-[400]">
+                            <button className="p-2 bg-white text-slate-600 rounded-lg shadow-md hover:bg-slate-50 border border-slate-200">
+                                <ZoomIn className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 bg-white text-slate-600 rounded-lg shadow-md hover:bg-slate-50 border border-slate-200">
+                                <ZoomOut className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 bg-white text-slate-600 rounded-lg shadow-md hover:bg-slate-50 border border-slate-200 my-2">
+                                <RotateCcw className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 bg-white text-slate-600 rounded-lg shadow-md hover:bg-slate-50 border border-slate-200" onClick={() => window.location.reload()}>
+                                <RefreshCw className="w-4 h-4" />
+                            </button>
+                            <button
+                                className={`p-2 bg-white text-slate-600 rounded-lg shadow-md hover:bg-slate-50 border border-slate-200 ${isMapFullscreen ? 'text-blue-600 bg-blue-50' : ''}`}
+                                onClick={() => setIsMapFullscreen(!isMapFullscreen)}
+                            >
+                                <Maximize className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* RIGHT: TABS & DETAILS */}
+                {/* Hidden in fullscreen mode */}
+                {!isMapFullscreen && (
+                    <div className="w-full lg:w-[380px] h-[600px]">
+                        <RightPanelTabs />
+                    </div>
+                )}
+
             </div>
-
-            {/* Simulation Controls */}
-            <SimulationPanel
-                waterLevel={waterLevel}
-                setWaterLevel={setWaterLevel}
-                rainfall={rainfall}
-                setRainfall={setRainfall}
-                status={status}
-            />
         </div>
     );
 };
