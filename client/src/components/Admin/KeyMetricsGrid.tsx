@@ -1,65 +1,8 @@
 import React from 'react';
-import { AlertTriangle, Home, CheckCircle, Users, TrendingUp, TrendingDown, CloudRain } from 'lucide-react';
+import { AlertTriangle, Home, Users, TrendingUp, TrendingDown, CloudRain, Activity } from 'lucide-react';
 import type { MetricCardConfig } from '../../types/admin.types';
 
-import { getWeather } from '../../services/weatherService';
 
-const metrics: MetricCardConfig[] = [
-    {
-        id: '1',
-        title: 'CRITICAL ALERTS',
-        value: '3',
-        subtitle: '234 people affected',
-        icon: AlertTriangle,
-        color: 'red',
-        trend: 'up'
-    },
-    {
-        id: '2',
-        title: 'WARNING ALERTS',
-        value: '8',
-        subtitle: '567 people affected',
-        icon: AlertTriangle,
-        color: 'orange',
-        trend: 'up'
-    },
-    {
-        id: '3',
-        title: 'AT-RISK VILLAGES',
-        value: '12',
-        subtitle: '245k population',
-        icon: Home,
-        color: 'yellow',
-        trend: 'up'
-    },
-    {
-        id: '4',
-        title: 'SAFE ZONES',
-        value: '42',
-        subtitle: '156k secure',
-        icon: CheckCircle,
-        color: 'green',
-        trend: 'neutral'
-    },
-    {
-        id: '5',
-        title: 'RESPONSE TEAMS',
-        value: '5',
-        subtitle: '75 members deployed',
-        icon: Users,
-        color: 'blue',
-        trend: 'neutral'
-    },
-    {
-        id: '6',
-        title: 'CURRENT WEATHER',
-        value: 'Loading...',
-        subtitle: 'Local Conditions',
-        icon: CloudRain,
-        color: 'purple',
-        trend: 'neutral'
-    }
-];
 
 const getColorClasses = (color: string) => {
     switch (color) {
@@ -85,43 +28,74 @@ const getIconBg = (color: string) => {
     }
 }
 
-const KeyMetricsGrid: React.FC = () => {
-    const [displayMetrics, setDisplayMetrics] = React.useState(metrics);
+interface KeyMetricsGridProps {
+    waterLevel: number;
+    rainfall: number;
+    status: 'NORMAL' | 'WARNING' | 'CRITICAL';
+    temperature: number | null;
+}
 
-    React.useEffect(() => {
-        const fetchWeather = async () => {
-            // India Center coordinates or relevant location
-            const data = await getWeather(20.5937, 78.9629);
-            if (data) {
-                setDisplayMetrics(prev => prev.map(m => {
-                    if (m.id === '6') {
-                        return {
-                            ...m,
-                            value: `${data.temp.toFixed(1)}°C`,
-                            subtitle: `${data.condition}, Hum: ${data.humidity}%`,
-                            trend: data.rainfall > 0 ? 'up' : 'neutral'
-                        };
-                    }
-                    return m;
-                }));
-            } else {
-                setDisplayMetrics(prev => prev.map(m => {
-                    if (m.id === '6') {
-                        return { ...m, value: 'N/A', subtitle: 'Service Unavailable' };
-                    }
-                    return m;
-                }));
-            }
-        };
-
-        fetchWeather();
-        const interval = setInterval(fetchWeather, 300000); // 5 mins
-        return () => clearInterval(interval);
-    }, []);
+const KeyMetricsGrid: React.FC<KeyMetricsGridProps> = ({ waterLevel, rainfall, status, temperature }) => {
+    const metrics_data: MetricCardConfig[] = [
+        {
+            id: '1',
+            title: 'SYSTEM STATUS',
+            value: status,
+            subtitle: status === 'NORMAL' ? 'Optimal Environment' : 'Active Hazard Response',
+            icon: AlertTriangle,
+            color: status === 'CRITICAL' ? 'red' : status === 'WARNING' ? 'orange' : 'green',
+            trend: status === 'CRITICAL' ? 'up' : 'neutral'
+        },
+        {
+            id: '2',
+            title: 'WATER LEVEL',
+            value: `${waterLevel.toFixed(1)}m`,
+            subtitle: `${((waterLevel - 10) / 5 * 100).toFixed(0)}% Capacity`,
+            icon: TrendingUp,
+            color: waterLevel > 14.5 ? 'red' : waterLevel > 13.0 ? 'orange' : 'blue',
+            trend: 'up'
+        },
+        {
+            id: '3',
+            title: 'RAINFALL INTENSITY',
+            value: `${rainfall.toFixed(0)}mm`,
+            subtitle: 'Real-time Precipitation',
+            icon: CloudRain,
+            color: rainfall > 100 ? 'blue' : 'blue',
+            trend: rainfall > 50 ? 'up' : 'neutral'
+        },
+        {
+            id: '4',
+            title: 'AT-RISK VILLAGES',
+            value: waterLevel > 14.5 ? '12' : waterLevel > 13.0 ? '4' : '0',
+            subtitle: 'Evacuation zones',
+            icon: Home,
+            color: waterLevel > 13 ? 'yellow' : 'green',
+            trend: 'neutral'
+        },
+        {
+            id: '5',
+            title: 'RESPONSE TEAMS',
+            value: waterLevel > 13 ? 'Active' : 'Standby',
+            subtitle: 'NDRF / Fire Dept',
+            icon: Users,
+            color: 'blue',
+            trend: 'neutral'
+        },
+        {
+            id: '6',
+            title: 'AMBIENT TEMP',
+            value: temperature ? `${temperature.toFixed(1)}°C` : '---',
+            subtitle: 'Local Station Data',
+            icon: Activity,
+            color: 'purple',
+            trend: 'neutral'
+        }
+    ];
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-            {displayMetrics.map((metric) => (
+            {metrics_data.map((metric) => (
                 <div
                     key={metric.id}
                     className={`relative p-4 rounded-xl border bg-gradient-to-br bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 ${getColorClasses(metric.color)}`}
@@ -138,10 +112,10 @@ const KeyMetricsGrid: React.FC = () => {
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                             {metric.title}
                         </p>
-                        <h3 className="text-3xl font-bold text-slate-800 mb-1">
+                        <h3 className="text-2xl font-bold text-slate-800 mb-1 lg:text-xl xl:text-2xl">
                             {metric.value}
                         </h3>
-                        <p className="text-xs text-slate-500 font-medium truncate">
+                        <p className="text-[10px] text-slate-500 font-medium truncate">
                             {metric.subtitle}
                         </p>
                     </div>

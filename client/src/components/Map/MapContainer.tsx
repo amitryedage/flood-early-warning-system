@@ -96,7 +96,8 @@ interface MapContainerProps {
     floodZones?: Array<{ lat: number; lng: number; radius: number; severity: 'HIGH' | 'MODERATE' }>;
     villages?: Array<{ id: string; name: string; lat: number; lng: number; status: 'SAFE' | 'WARNING' | 'CRITICAL' }>;
     shelters?: Array<{ id: string; name: string; lat: number; lng: number; capacity: number }>;
-    responseTeams?: Array<{ id: string; name: string; lat: number; lng: number; status: 'AVAILABLE' | 'BUSY' }>;
+    responseTeams?: Array<{ id: string; name: string; lat: number; lng: number; status: 'ON_DUTY' | 'EN_ROUTE' | 'ON_SITE' | string }>;
+    tasks?: Array<{ id: string; title: string; lat?: number; lng?: number; status: string; urgency: string }>;
 }
 
 const MapContainer: React.FC<MapContainerProps> = ({
@@ -105,7 +106,8 @@ const MapContainer: React.FC<MapContainerProps> = ({
     floodZones = [],
     villages = [],
     shelters = [],
-    responseTeams = []
+    responseTeams = [],
+    tasks = []
 }) => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -120,7 +122,7 @@ const MapContainer: React.FC<MapContainerProps> = ({
         setMap(map);
     }, []);
 
-    const onUnmount = useCallback(function callback(map: google.maps.Map) {
+    const onUnmount = useCallback(function callback() {
         setMap(null);
     }, []);
 
@@ -145,6 +147,12 @@ const MapContainer: React.FC<MapContainerProps> = ({
             responseTeams.forEach(team => {
                 bounds.extend({ lat: team.lat, lng: team.lng });
                 hasPoints = true;
+            });
+            tasks.forEach(task => {
+                if (task.lat && task.lng) {
+                    bounds.extend({ lat: task.lat, lng: task.lng });
+                    hasPoints = true;
+                }
             });
 
             if (hasPoints) {
@@ -251,10 +259,28 @@ const MapContainer: React.FC<MapContainerProps> = ({
                         icon={{
                             path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
                             scale: 5,
-                            fillColor: team.status === 'AVAILABLE' ? '#eab308' : '#6b7280',
+                            fillColor: team.status === 'ON_DUTY' ? '#10b981' : (team.status === 'EN_ROUTE' ? '#eab308' : '#3b82f6'),
                             fillOpacity: 1,
                             strokeWeight: 1,
                             strokeColor: '#ffffff',
+                        }}
+                    />
+                ))}
+
+                {/* Emergency Tasks */}
+                {tasks.filter(t => t.status !== 'COMPLETED' && t.lat !== undefined && t.lng !== undefined).map((task) => (
+                    <Marker
+                        key={task.id}
+                        position={{ lat: task.lat!, lng: task.lng! }}
+                        onClick={() => setSelectedMarker({ ...task, name: task.title, details: `Urgency: ${task.urgency}` })}
+                        icon={{
+                            path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z",
+                            fillColor: task.urgency === 'HIGH' ? '#ef4444' : '#f97316',
+                            fillOpacity: 1,
+                            strokeWeight: 2,
+                            strokeColor: '#ffffff',
+                            scale: 1,
+                            anchor: new google.maps.Point(12, 12),
                         }}
                     />
                 ))}

@@ -1,23 +1,42 @@
 import React, { useState } from 'react';
-import { Search, Filter, MoreHorizontal, MapPin, Phone, MessageSquare, Navigation, TrendingUp } from 'lucide-react';
-import type { Village, Team } from '../../types/admin.types';
+import { Search, Filter, MoreHorizontal, MapPin, Navigation, TrendingUp } from 'lucide-react';
+import { useSocket, type FloodData } from '../../hooks/useSocket';
 
-const RightPanelTabs: React.FC = () => {
+interface RightPanelTabsProps {
+    floodData: FloodData | null;
+}
+
+const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData }) => {
+    const { socket } = useSocket();
     const [activeTab, setActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history'>('villages');
+    const [dispatchingTo, setDispatchingTo] = useState<string | null>(null);
+    const [taskTitle, setTaskTitle] = useState('');
 
-    // Mock Data
-    const villages: Village[] = [
+    // Live Data from socket
+    const teams = floodData?.responders || [];
+    const activeTasks = floodData?.tasks || [];
+
+    const handleDispatch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (socket && dispatchingTo && taskTitle) {
+            socket.emit('dispatch-task', {
+                title: taskTitle,
+                type: 'EMERGENCY',
+                urgency: 'HIGH',
+                assignedTo: dispatchingTo
+            });
+            setDispatchingTo(null);
+            setTaskTitle('');
+        }
+    };
+
+    // Mock Data for villages (Static for now)
+    const villagesList = [
         { id: '1', name: 'Villupuram', riskLevel: 95, population: 45000, status: 'critical', lat: 11.94, lng: 79.48 },
         { id: '2', name: 'Kolhapur', riskLevel: 87, population: 32000, status: 'critical', lat: 16.70, lng: 74.24 },
         { id: '3', name: 'Nashik', riskLevel: 72, population: 15000, status: 'danger', lat: 19.99, lng: 73.78 },
         { id: '4', name: 'Belgaum', riskLevel: 45, population: 12000, status: 'warning', lat: 15.84, lng: 74.49 },
         { id: '5', name: 'Aurangabad', riskLevel: 28, population: 89000, status: 'safe', lat: 19.87, lng: 75.34 },
-    ];
-
-    const teams: Team[] = [
-        { id: 't1', name: 'NDRF Team 1', type: 'NDRF', status: 'active', location: 'Nashik', members: 15 },
-        { id: 't2', name: 'Fire Dept A', type: 'Fire', status: 'active', location: 'Kolhapur', members: 8 },
-        { id: 't3', name: 'Rescue 2', type: 'Volunteer', status: 'en-route', location: 'Belgaum', members: 12 },
     ];
 
     return (
@@ -71,7 +90,7 @@ const RightPanelTabs: React.FC = () => {
                         </div>
 
                         <div className="space-y-2">
-                            {villages.map(village => (
+                            {villagesList.map(village => (
                                 <div key={village.id} className="group p-3 border border-slate-100 rounded-lg hover:border-sky-200 hover:shadow-sm transition-all bg-white cursor-pointer">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="font-semibold text-slate-700">{village.name}</h4>
@@ -114,35 +133,57 @@ const RightPanelTabs: React.FC = () => {
                 {activeTab === 'teams' && (
                     <div className="space-y-3">
                         <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-500 uppercase">Deployed Teams</span>
+                            <span className="text-xs font-semibold text-slate-500 uppercase">Live Field Units</span>
                             <span className="text-xs bg-slate-100 rounded px-2 py-0.5 text-slate-600">Total: {teams.length}</span>
                         </div>
                         {teams.map(team => (
-                            <div key={team.id} className="p-3 border border-slate-100 rounded-lg hover:border-blue-200 transition-colors bg-white">
+                            <div key={team.id} className={`p-3 border rounded-lg transition-all bg-white ${dispatchingTo === team.id ? 'border-sky-500 ring-2 ring-sky-100' : 'border-slate-100'}`}>
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
                                         <h4 className="font-semibold text-slate-700 text-sm">{team.name}</h4>
-                                        <p className="text-xs text-slate-500">{team.type} • {team.members} Members</p>
+                                        <p className="text-xs text-slate-500">RES-UNIT • {team.status}</p>
                                     </div>
-                                    <span className={`w-2 h-2 rounded-full ${team.status === 'active' ? 'bg-emerald-500 animate-pulse' :
-                                        team.status === 'en-route' ? 'bg-yellow-500' : 'bg-slate-400'
-                                        }`}></span>
+                                    <span className={`w-2.5 h-2.5 rounded-full ${team.status === 'ON_DUTY' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-400'}`}></span>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded">
+                                <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded mb-3">
                                     <MapPin className="w-3 h-3 text-slate-400" />
-                                    {team.location}
+                                    {team.lat.toFixed(4)}, {team.lng.toFixed(4)}
                                 </div>
-                                <div className="grid grid-cols-3 gap-2 mt-3">
-                                    <button className="flex justify-center items-center py-1.5 border border-slate-200 rounded hover:bg-slate-50 text-slate-600 transition-colors">
-                                        <Phone className="w-3.5 h-3.5" />
+
+                                {/* Active Task for this team */}
+                                {activeTasks.find(t => t.assignedTo === team.id && t.status !== 'COMPLETED') ? (
+                                    <div className="bg-orange-50 border border-orange-100 p-2 rounded mb-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-orange-600 uppercase">Active Task</span>
+                                            <span className="text-[10px] bg-orange-200 text-orange-700 px-1 rounded font-black">{activeTasks.find(t => t.assignedTo === team.id)?.status}</span>
+                                        </div>
+                                        <p className="text-xs font-bold text-orange-800 mt-1">{activeTasks.find(t => t.assignedTo === team.id)?.title}</p>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setDispatchingTo(dispatchingTo === team.id ? null : team.id)}
+                                        className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded font-bold text-xs flex items-center justify-center gap-2 mb-3"
+                                    >
+                                        <Navigation className="w-3 h-3" /> DISPATCH ORDER
                                     </button>
-                                    <button className="flex justify-center items-center py-1.5 border border-slate-200 rounded hover:bg-slate-50 text-slate-600 transition-colors">
-                                        <MessageSquare className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button className="flex justify-center items-center py-1.5 border border-slate-200 rounded hover:bg-slate-50 text-slate-600 transition-colors">
-                                        <Navigation className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
+                                )}
+
+                                {dispatchingTo === team.id && (
+                                    <form onSubmit={handleDispatch} className="mt-2 pt-3 border-t border-slate-100 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            placeholder="Task details (e.g. Evacuate 4B)"
+                                            className="w-full px-2 py-2 text-xs border border-slate-200 rounded outline-none focus:ring-2 focus:ring-sky-500"
+                                            value={taskTitle}
+                                            onChange={(e) => setTaskTitle(e.target.value)}
+                                        />
+                                        <div className="flex gap-2">
+                                            <button type="submit" className="flex-1 py-1.5 bg-slate-900 text-white rounded text-[10px] font-bold">SEND COMMAND</button>
+                                            <button type="button" onClick={() => setDispatchingTo(null)} className="px-3 py-1.5 bg-slate-100 rounded text-[10px] font-bold">CANCEL</button>
+                                        </div>
+                                    </form>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -156,37 +197,55 @@ const RightPanelTabs: React.FC = () => {
                             <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">Next 5 Hours</span>
                         </div>
 
-                        {/* CSS Bar Chart */}
-                        <div className="h-48 flex items-end justify-between gap-2 px-2 pt-6 pb-2 border-b border-l border-slate-200 bg-slate-50 relative">
-                            {/* Y-Axis Lines */}
-                            <div className="absolute top-0 left-0 right-0 h-[1px] bg-slate-200 border-t border-dashed border-slate-300"></div>
-                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-slate-200 border-t border-dashed border-slate-300"></div>
+                        {/* CSS Bar Chart - Dynamic */}
+                        <div className="h-48 flex items-end justify-between gap-2 px-2 pt-10 pb-2 border-b border-l border-slate-200 bg-slate-50 relative">
+                            {/* Capacity Markers */}
+                            <div className="absolute top-0 left-0 right-0 h-[1px] bg-red-200 border-t border-dashed border-red-300 z-0">
+                                <span className="absolute -top-3 left-1 text-[8px] font-black text-red-500 uppercase">Danger (15m+)</span>
+                            </div>
+                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-slate-200 border-t border-dashed border-slate-300 z-0"></div>
 
-                            {[74, 78, 90, 89, 85].map((val, i) => (
-                                <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                                    <div
-                                        className={`w-full max-w-[30px] rounded-t-sm transition-all duration-500 ${val > 80 ? 'bg-red-400' : val > 60 ? 'bg-orange-400' : 'bg-blue-400'
-                                            }`}
-                                        style={{ height: `${val}%` }}
-                                    ></div>
-                                    <span className="text-[10px] text-slate-500 font-mono">{12 + i}:00</span>
+                            {floodData?.forecast.slice(0, 8).map((point, i) => {
+                                // Normalize height (10m = 0%, 20m = 100%)
+                                const height = Math.min(100, Math.max(10, (point.waterLevel - 10) * 10));
+                                const time = new Date(point.timestamp).getHours();
 
-                                    {/* Tooltip */}
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                        Level: {val}%
+                                return (
+                                    <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
+                                        <div
+                                            className={`w-full max-w-[24px] rounded-t-lg transition-all duration-1000 ${point.waterLevel > 14.5 ? 'bg-gradient-to-t from-red-600 to-red-400' :
+                                                point.waterLevel > 13.0 ? 'bg-gradient-to-t from-orange-600 to-orange-400' :
+                                                    'bg-gradient-to-t from-blue-600 to-blue-400'
+                                                }`}
+                                            style={{ height: `${height}%` }}
+                                        ></div>
+                                        <span className="text-[10px] text-slate-500 font-black">{time}:00</span>
+
+                                        {/* Tooltip */}
+                                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 text-white text-[10px] px-2 py-1.5 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 whitespace-nowrap pointer-events-none">
+                                            <div className="font-black text-sky-400 mb-0.5">{point.waterLevel.toFixed(1)}m</div>
+                                            <div className="opacity-60">{time}:00 HRS</div>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
                             <div className="flex items-start gap-3">
                                 <TrendingUp className="w-5 h-5 text-blue-600 mt-0.5" />
                                 <div>
-                                    <h5 className="text-sm font-bold text-blue-800 mb-1">Prediction Analysis</h5>
+                                    <h5 className="text-sm font-bold text-blue-800 mb-1">AI Prediction Report</h5>
                                     <p className="text-xs text-blue-700 leading-relaxed">
-                                        Water levels are expected to peak at <span className="font-bold">14:00</span> (90% capacity).
-                                        Response teams should be deployed to Zone A by 13:30.
+                                        {floodData && floodData.forecast && floodData.forecast.length > 0 ? (
+                                            floodData.forecast[0].waterLevel > floodData.waterLevel ? (
+                                                <>Water levels are <span className="font-black text-red-600">RISING</span>. Peak surge expected at <span className="font-bold">{new Date(floodData.forecast.reduce((prev, current) => (prev.waterLevel > current.waterLevel) ? prev : current).timestamp).getHours()}:00</span>.</>
+                                            ) : (
+                                                <>Water levels are <span className="font-black text-emerald-600">STABILIZING</span>. No immediate surge detected in next 24h.</>
+                                            )
+                                        ) : (
+                                            "Calculating real-time projections..."
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -212,8 +271,8 @@ const RightPanelTabs: React.FC = () => {
                                 <div key={i} className="relative">
                                     {/* Dot */}
                                     <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${item.type === 'critical' ? 'bg-red-500' :
-                                            item.type === 'warning' ? 'bg-orange-500' :
-                                                item.type === 'info' ? 'bg-blue-500' : 'bg-emerald-500'
+                                        item.type === 'warning' ? 'bg-orange-500' :
+                                            item.type === 'info' ? 'bg-blue-500' : 'bg-emerald-500'
                                         }`}></div>
 
                                     <div className="flex justify-between items-start">

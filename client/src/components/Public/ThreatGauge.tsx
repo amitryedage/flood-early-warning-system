@@ -1,8 +1,21 @@
 import React from 'react';
 
-const ThreatGauge: React.FC = () => {
-    // Current level (0-100)
-    const level = 45;
+interface ThreatGaugeProps {
+    waterLevel?: number;
+}
+
+const ThreatGauge: React.FC<ThreatGaugeProps> = ({ waterLevel }) => {
+    // Calculate level percentage based on water level (10-15m range)
+    // 10m = 0%, 15m = 100%
+    const calculateLevel = (wl?: number) => {
+        if (!wl) return 45; // Default fallback
+        const minLevel = 10;
+        const maxLevel = 15;
+        const percentage = ((wl - minLevel) / (maxLevel - minLevel)) * 100;
+        return Math.max(0, Math.min(100, percentage));
+    };
+
+    const level = calculateLevel(waterLevel);
 
     return (
         <div className="bg-white rounded-xl border border-slate-200 p-5 mb-6 shadow-sm">

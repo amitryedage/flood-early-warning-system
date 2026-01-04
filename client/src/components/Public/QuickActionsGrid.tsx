@@ -1,11 +1,18 @@
 import React from 'react';
 import { Map, Bell, Home, Users, Phone, Shield } from 'lucide-react';
 
-const QuickActionsGrid: React.FC = () => {
+interface QuickActionsGridProps {
+    onAction?: (action: 'MAP' | 'ALERTS' | 'SHELTERS' | 'FAMILY' | 'EMERGENCY' | 'ADMIN') => void;
+}
+
+const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onAction }) => {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {/* Evacuation Routes */}
-            <button className="flex flex-col items-start p-5 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 hover:border-blue-200 hover:shadow-md transition-all group text-left">
+            <button
+                onClick={() => onAction?.('MAP')}
+                className="flex flex-col items-start p-5 bg-blue-50 border border-blue-100 rounded-xl hover:bg-blue-100 hover:border-blue-200 hover:shadow-md transition-all group text-left"
+            >
                 <div className="p-3 bg-blue-500 rounded-lg text-white mb-3 group-hover:scale-110 transition-transform shadow-sm">
                     <Map className="w-6 h-6" />
                 </div>
@@ -17,7 +24,10 @@ const QuickActionsGrid: React.FC = () => {
             </button>
 
             {/* Alert Me */}
-            <button className="flex flex-col items-start p-5 bg-orange-50 border border-orange-100 rounded-xl hover:bg-orange-100 hover:border-orange-200 hover:shadow-md transition-all group text-left">
+            <button
+                onClick={() => onAction?.('ALERTS')}
+                className="flex flex-col items-start p-5 bg-orange-50 border border-orange-100 rounded-xl hover:bg-orange-100 hover:border-orange-200 hover:shadow-md transition-all group text-left"
+            >
                 <div className="p-3 bg-orange-500 rounded-lg text-white mb-3 group-hover:scale-110 transition-transform shadow-sm">
                     <Bell className="w-6 h-6" />
                 </div>
