@@ -43,16 +43,14 @@ const RiskAssessor: React.FC<RiskAssessorProps> = ({ floodZones, onLocationUpdat
             for (const zone of floodZones) {
                 const distance = calculateDistance(userLocation.lat, userLocation.lng, zone.lat, zone.lng);
 
-                // If user is inside the radius
                 if (distance <= zone.radius) {
                     if (zone.severity === 'HIGH') {
                         highestRisk = 'CRITICAL';
-                        break; // Critical is highest, stop looking
+                        break;
                     } else {
                         highestRisk = 'WARNING';
                     }
                 }
-                // Buffer zone: if user is within 5km of the edge
                 else if (distance <= zone.radius + 5000) {
                     if (highestRisk === 'SAFE') {
                         highestRisk = 'WARNING';
@@ -66,72 +64,80 @@ const RiskAssessor: React.FC<RiskAssessorProps> = ({ floodZones, onLocationUpdat
     }, [userLocation, floodZones]);
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-            <div className="p-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
+            <div className="p-6 flex-1">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900">Am I Safe?</h2>
-                        <p className="text-sm text-slate-500">Real-time risk assessment for your location</p>
+                        <h2 className="text-lg font-bold text-slate-900">Am I Safe?</h2>
+                        <p className="text-xs text-slate-500 font-medium mt-0.5">Real-time risk assessment for your location</p>
                     </div>
-                    <MapPin className="text-sky-500 w-6 h-6" />
+                    <MapPin className="text-sky-500 w-5 h-5" />
                 </div>
 
                 {!userLocation ? (
-                    <div className="flex flex-col items-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                    <div className="flex flex-col items-center py-10 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
                         <button
                             onClick={checkSafety}
                             disabled={loading}
-                            className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-sky-200 transition-all flex items-center gap-2 active:scale-95"
+                            className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-sky-100 transition-all flex items-center gap-2 active:scale-95 text-sm uppercase tracking-wider"
                         >
-                            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <MapPin className="w-5 h-5" />}
+                            {loading ? <Loader2 className="animate-spin w-4 h-4" /> : <MapPin className="w-4 h-4" />}
                             CHECK MY LOCATION
                         </button>
-                        {error && <p className="mt-4 text-red-500 text-sm font-medium">{error}</p>}
-                        <p className="mt-3 text-slate-400 text-xs">Distance is calculated relative to active alert zones.</p>
+                        {error && <p className="mt-4 text-red-500 text-[10px] font-bold uppercase">{error}</p>}
+                        <p className="mt-4 text-slate-400 text-[10px] uppercase tracking-tighter">Calculated relative to active alert zones.</p>
                     </div>
                 ) : (
-                    <div className={`p-6 rounded-xl border flex items-center gap-6 transition-all ${status === 'SAFE' ? 'bg-emerald-50 border-emerald-100 text-emerald-900' :
-                        status === 'WARNING' ? 'bg-orange-50 border-orange-100 text-orange-900' :
-                            'bg-red-50 border-red-100 text-red-900'
-                        }`}>
-                        <div className={`p-4 rounded-full ${status === 'SAFE' ? 'bg-emerald-500' :
-                            status === 'WARNING' ? 'bg-orange-500' :
-                                'bg-red-500'
+                    <div className="flex flex-col items-center text-center justify-center h-48 py-4 relative group">
+                        <div className={`p-5 rounded-full mb-4 shadow-xl transition-all duration-700 ${status === 'SAFE' ? 'bg-emerald-500 shadow-emerald-100' :
+                            status === 'WARNING' ? 'bg-orange-500 shadow-orange-100' :
+                                'bg-red-500 shadow-red-100'
                             } text-white`}>
-                            {status === 'SAFE' && <ShieldCheck className="w-10 h-10" />}
-                            {status === 'WARNING' && <AlertTriangle className="w-10 h-10" />}
-                            {status === 'CRITICAL' && <AlertCircle className="w-10 h-10" />}
+                            {status === 'SAFE' && <ShieldCheck className="w-12 h-12" />}
+                            {status === 'WARNING' && <AlertTriangle className="w-12 h-12" />}
+                            {status === 'CRITICAL' && <AlertCircle className="w-12 h-12" />}
                         </div>
-
-                        <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className={`text-xs font-black uppercase tracking-widest px-2 py-0.5 rounded ${status === 'SAFE' ? 'bg-emerald-200' :
-                                    status === 'WARNING' ? 'bg-orange-200' :
-                                        'bg-red-200'
-                                    }`}>
-                                    Status: {status}
-                                </span>
-                                <button
-                                    onClick={checkSafety}
-                                    className="text-slate-400 hover:text-slate-600 text-xs flex items-center gap-1 ml-auto"
-                                >
-                                    <Loader2 className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Refresh
-                                </button>
-                            </div>
-                            <h3 className="text-2xl font-black italic">
-                                {status === 'SAFE' && "YOU ARE CURRENTLY SAFE"}
-                                {status === 'WARNING' && "WARNING: ELEVATED RISK"}
-                                {status === 'CRITICAL' && "URGENT: LEAVE THE AREA"}
-                            </h3>
-                            <p className="text-sm opacity-80 mt-1 font-medium">
-                                {status === 'SAFE' && "No active flood zones detected within 5km of your location."}
-                                {status === 'WARNING' && "You are near or inside a moderate risk zone. Stay alert and monitor news."}
-                                {status === 'CRITICAL' && "You are inside a critical flood zone. Please follow evacuation protocols immediately."}
-                            </p>
-                        </div>
+                        <button
+                            onClick={checkSafety}
+                            className="text-slate-400 hover:text-slate-600 text-[9px] font-black uppercase tracking-widest flex items-center gap-1 transition-colors"
+                        >
+                            <Loader2 className={`w-2.5 h-2.5 ${loading ? 'animate-spin' : ''}`} /> Refresh
+                        </button>
                     </div>
                 )}
             </div>
+
+            {userLocation && (
+                <div className={`p-5 flex flex-col gap-1 transition-all duration-700 border-t ${status === 'SAFE' ? 'bg-emerald-50/80 border-emerald-100' :
+                    status === 'WARNING' ? 'bg-orange-50/80 border-orange-100' :
+                        'bg-red-50/80 border-red-100'
+                    }`}>
+                    <div className="flex items-center justify-between">
+                        <span className={`text-[10px] font-black uppercase tracking-[0.15em] px-2 py-0.5 rounded ${status === 'SAFE' ? 'bg-emerald-200 text-emerald-800' :
+                            status === 'WARNING' ? 'bg-orange-200 text-orange-800' :
+                                'bg-red-200 text-red-800'
+                            }`}>
+                            STATUS: {status}
+                        </span>
+                    </div>
+                    <h3 className={`text-xl font-black italic tracking-tight ${status === 'SAFE' ? 'text-emerald-900' :
+                        status === 'WARNING' ? 'text-orange-900' :
+                            'text-red-900'
+                        }`}>
+                        {status === 'SAFE' && "YOU ARE CURRENTLY SAFE"}
+                        {status === 'WARNING' && "WARNING: ELEVATED RISK"}
+                        {status === 'CRITICAL' && "URGENT: LEAVE THE AREA"}
+                    </h3>
+                    <p className={`text-[11px] font-medium opacity-70 leading-tight ${status === 'SAFE' ? 'text-emerald-800' :
+                        status === 'WARNING' ? 'text-orange-800' :
+                            'text-red-800'
+                        }`}>
+                        {status === 'SAFE' && "No active flood zones detected within your vicinity."}
+                        {status === 'WARNING' && "Elevated water levels in adjacent zones. Stay alert."}
+                        {status === 'CRITICAL' && "Critical hazard detected. Evacuate immediately."}
+                    </p>
+                </div>
+            )}
         </div>
     );
 };
