@@ -8,7 +8,7 @@ const PublicLayout: React.FC = () => {
         <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pt-[60px]">
             <PublicNavbar />
 
-            <main className="container mx-auto px-4 py-6 max-w-5xl min-h-[calc(100vh-250px)]">
+            <main className="container mx-auto px-4 py-6 max-w-7xl min-h-[calc(100vh-250px)]">
                 <Outlet />
             </main>
 

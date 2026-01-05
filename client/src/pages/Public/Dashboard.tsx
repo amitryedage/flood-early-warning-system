@@ -22,7 +22,7 @@ const PublicDashboard: React.FC = () => {
     const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="w-full">
             {/* Connection Status Indicator */}
             {!connected && (
                 <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-2xl text-yellow-800 text-sm flex items-center gap-3 shadow-sm">

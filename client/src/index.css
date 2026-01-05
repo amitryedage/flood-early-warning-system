@@ -9,8 +9,8 @@ body,
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  /* Prevent scroll on full-screen dashboards */
+  overflow: auto;
+  /* Allow scrolling */
   background-color: #020617;
   /* Slate 950 */
   color: #f8fafc;
