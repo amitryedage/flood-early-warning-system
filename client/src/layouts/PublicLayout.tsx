@@ -5,10 +5,10 @@ import PublicFooter from '../components/Public/PublicFooter';
 
 const PublicLayout: React.FC = () => {
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pt-[60px]">
+        <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pt-[60px]">
             <PublicNavbar />
 
-            <main className="container mx-auto px-4 py-6 max-w-7xl min-h-[calc(100vh-250px)]">
+            <main className="container mx-auto px-8 py-8 max-w-[1440px] min-h-[calc(100vh-250px)]">
                 <Outlet />
             </main>
 

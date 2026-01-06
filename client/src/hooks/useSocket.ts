@@ -21,6 +21,7 @@ export interface FloodData {
         location: string | null;
     };
     responders: Array<{ id: string; name: string; lat: number; lng: number; status: string }>;
+    villages: Array<{ id: string; name: string; riskLevel: number; population: number; lat: number; lng: number; status: string }>;
     tasks: Array<{ id: string; type: string; title: string; status: string; urgency: string; assignedTo: string; lat?: number; lng?: number }>;
     forecast: Array<{ timestamp: number; waterLevel: number }>;
     history: Array<{ timestamp: number; waterLevel: number; rainfall: number }>;

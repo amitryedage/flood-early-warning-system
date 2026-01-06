@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { GoogleMap, useJsApiLoader, Circle, Marker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, Circle, Marker, InfoWindow } from '@react-google-maps/api';
 import { Home, Navigation } from 'lucide-react';
 
 const containerStyle = {
@@ -18,15 +18,22 @@ interface PublicMapProps {
     userLocation?: { lat: number; lng: number } | null;
     floodZones: Array<{ lat: number; lng: number; radius: number; severity: 'HIGH' | 'MODERATE' }>;
     shelters: Array<{ id: string; name: string; lat: number; lng: number; capacity: number }>;
+    isLoaded?: boolean;
 }
 
-const PublicMap: React.FC<PublicMapProps> = ({ userLocation, floodZones, shelters }) => {
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
-    });
+const PublicMap: React.FC<PublicMapProps> = ({ userLocation, floodZones, shelters, isLoaded = true }) => {
+    // Internal loader removed to rely on parent loader or global script (simplified for this context)
+    // If used standalone, it needs a loader, but here it's embedded.
+
+    // Fallback if not passed (though ideally parent handles it)
+    // const { isLoaded: internalLoaded } = useJsApiLoader(...) 
+    // For now we assume parent passes it or we render if loaded.
+
+    // To handle both cases safely without re-loading script with diff libraries:
+    // If the parent is loading it, we just wait.
 
     const [selectedShelter, setSelectedShelter] = useState<any | null>(null);
+
 
     const onLoad = useCallback(function callback() {
         // Map loaded

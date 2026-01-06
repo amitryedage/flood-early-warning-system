@@ -2,29 +2,27 @@ import React from 'react';
 import { AlertTriangle, Home, Users, TrendingUp, TrendingDown, CloudRain, Activity } from 'lucide-react';
 import type { MetricCardConfig } from '../../types/admin.types';
 
-
-
 const getColorClasses = (color: string) => {
     switch (color) {
-        case 'red': return 'from-red-500/10 to-red-500/5 border-red-200 text-red-700';
-        case 'orange': return 'from-orange-500/10 to-orange-500/5 border-orange-200 text-orange-700';
-        case 'yellow': return 'from-yellow-500/10 to-yellow-500/5 border-yellow-200 text-yellow-700';
-        case 'green': return 'from-emerald-500/10 to-emerald-500/5 border-emerald-200 text-emerald-700';
-        case 'blue': return 'from-blue-500/10 to-blue-500/5 border-blue-200 text-blue-700';
-        case 'purple': return 'from-purple-500/10 to-purple-500/5 border-purple-200 text-purple-700';
-        default: return 'from-slate-500/10 to-slate-500/5 border-slate-200 text-slate-700';
+        case 'red': return 'border-red-500/30 shadow-red-500/5';
+        case 'orange': return 'border-orange-500/30 shadow-orange-500/5';
+        case 'yellow': return 'border-amber-500/30 shadow-amber-500/5';
+        case 'green': return 'border-emerald-500/30 shadow-emerald-500/5';
+        case 'blue': return 'border-cyan-500/30 shadow-cyan-500/5';
+        case 'purple': return 'border-purple-500/30 shadow-purple-500/5';
+        default: return 'border-slate-200';
     }
 };
 
 const getIconBg = (color: string) => {
     switch (color) {
-        case 'red': return 'bg-red-100 text-red-600';
-        case 'orange': return 'bg-orange-100 text-orange-600';
-        case 'yellow': return 'bg-yellow-100 text-yellow-600';
-        case 'green': return 'bg-emerald-100 text-emerald-600';
-        case 'blue': return 'bg-blue-100 text-blue-600';
-        case 'purple': return 'bg-purple-100 text-purple-600';
-        default: return 'bg-slate-100 text-slate-600';
+        case 'red': return 'bg-red-50 text-red-500';
+        case 'orange': return 'bg-orange-50 text-orange-500';
+        case 'yellow': return 'bg-amber-50 text-amber-500';
+        case 'green': return 'bg-emerald-50 text-emerald-500';
+        case 'blue': return 'bg-cyan-50 text-cyan-600';
+        case 'purple': return 'bg-purple-50 text-purple-600';
+        default: return 'bg-slate-100 text-slate-500';
     }
 }
 
@@ -39,45 +37,45 @@ const KeyMetricsGrid: React.FC<KeyMetricsGridProps> = ({ waterLevel, rainfall, s
     const metrics_data: MetricCardConfig[] = [
         {
             id: '1',
-            title: 'SYSTEM STATUS',
+            title: 'TACTICAL STATUS',
             value: status,
-            subtitle: status === 'NORMAL' ? 'Optimal Environment' : 'Active Hazard Response',
+            subtitle: status === 'NORMAL' ? 'NOMINAL OPERATION' : 'ALERT PROTOCOL ACTIVE',
             icon: AlertTriangle,
             color: status === 'CRITICAL' ? 'red' : status === 'WARNING' ? 'orange' : 'green',
             trend: status === 'CRITICAL' ? 'up' : 'neutral'
         },
         {
             id: '2',
-            title: 'WATER LEVEL',
+            title: 'BASIN DEPTH',
             value: `${waterLevel.toFixed(1)}m`,
-            subtitle: `${((waterLevel - 10) / 5 * 100).toFixed(0)}% Capacity`,
+            subtitle: `CAPACITY: ${((waterLevel - 10) / 5 * 100).toFixed(0)}%`,
             icon: TrendingUp,
             color: waterLevel > 14.5 ? 'red' : waterLevel > 13.0 ? 'orange' : 'blue',
             trend: 'up'
         },
         {
             id: '3',
-            title: 'RAINFALL INTENSITY',
+            title: 'PRECIPITATION',
             value: `${rainfall.toFixed(0)}mm`,
-            subtitle: 'Real-time Precipitation',
+            subtitle: 'REAL-TIME ISO-LINE',
             icon: CloudRain,
-            color: rainfall > 100 ? 'blue' : 'blue',
+            color: 'blue',
             trend: rainfall > 50 ? 'up' : 'neutral'
         },
         {
             id: '4',
-            title: 'AT-RISK VILLAGES',
-            value: waterLevel > 14.5 ? '12' : waterLevel > 13.0 ? '4' : '0',
-            subtitle: 'Evacuation zones',
+            title: 'SECTOR RISK',
+            value: waterLevel > 14.5 ? '12 ZONES' : waterLevel > 13.0 ? '4 ZONES' : 'STABLE',
+            subtitle: 'EVACUATION READINESS',
             icon: Home,
             color: waterLevel > 13 ? 'yellow' : 'green',
             trend: 'neutral'
         },
         {
             id: '5',
-            title: 'RESPONSE TEAMS',
-            value: waterLevel > 13 ? 'Active' : 'Standby',
-            subtitle: 'NDRF / Fire Dept',
+            title: 'ASSET DEPLOYMENT',
+            value: waterLevel > 13 ? 'ACTIVE' : 'READY',
+            subtitle: 'QRF UNITS SYNCED',
             icon: Users,
             color: 'blue',
             trend: 'neutral'
@@ -85,8 +83,8 @@ const KeyMetricsGrid: React.FC<KeyMetricsGridProps> = ({ waterLevel, rainfall, s
         {
             id: '6',
             title: 'AMBIENT TEMP',
-            value: temperature ? `${temperature.toFixed(1)}°C` : '---',
-            subtitle: 'Local Station Data',
+            value: temperature ? `${temperature.toFixed(1)}°C` : 'N/A',
+            subtitle: 'SECTOR TELEMETRY',
             icon: Activity,
             color: 'purple',
             trend: 'neutral'
@@ -94,31 +92,37 @@ const KeyMetricsGrid: React.FC<KeyMetricsGridProps> = ({ waterLevel, rainfall, s
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
             {metrics_data.map((metric) => (
                 <div
                     key={metric.id}
-                    className={`relative p-4 rounded-xl border bg-gradient-to-br bg-white shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 ${getColorClasses(metric.color)}`}
+                    className={`relative p-5 rounded-2xl border bg-white shadow-lg transition-all duration-500 hover:border-slate-300 hover:shadow-xl group ${getColorClasses(metric.color)}`}
                 >
-                    <div className="flex items-start justify-between mb-3">
-                        <div className={`p-2 rounded-lg ${getIconBg(metric.color)}`}>
+                    <div className="flex items-start justify-between mb-6">
+                        <div className={`p-3 rounded-xl transition-all group-hover:scale-110 ${getIconBg(metric.color)}`}>
                             <metric.icon className="w-5 h-5" />
                         </div>
-                        {metric.trend === 'up' && <TrendingUp className="w-4 h-4" />}
-                        {metric.trend === 'down' && <TrendingDown className="w-4 h-4" />}
+                        <div className="flex gap-1">
+                            {metric.trend === 'up' && <TrendingUp className="w-3.5 h-3.5 text-red-500" />}
+                            {metric.trend === 'down' && <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />}
+                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_8px_rgba(6,182,212,0.8)]"></div>
+                        </div>
                     </div>
 
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5 group-hover:text-slate-500 transition-colors">
                             {metric.title}
                         </p>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-1 lg:text-xl xl:text-2xl">
+                        <h3 className="text-2xl font-black text-slate-800 mb-2 leading-none tracking-tighter">
                             {metric.value}
                         </h3>
-                        <p className="text-[10px] text-slate-500 font-medium truncate">
+                        <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest truncate">
                             {metric.subtitle}
                         </p>
                     </div>
+
+                    {/* Tactical scanning line effect */}
+                    <div className="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
             ))}
         </div>

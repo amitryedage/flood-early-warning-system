@@ -5,7 +5,7 @@ import AdminSidebar from '../components/Admin/Sidebar';
 
 const AdminLayout: React.FC = () => {
     return (
-        <div className="h-screen overflow-hidden bg-slate-50 relative">
+        <div className="h-screen overflow-hidden bg-gray-50 relative text-slate-900">
             {/* 1. Fixed Top Navbar (z-50) */}
             <AdminNavbar />
 

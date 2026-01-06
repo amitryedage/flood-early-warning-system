@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Bell, Mail, Phone, ShieldCheck, X } from 'lucide-react';
 import axios from 'axios';
+import { useToast } from '../../context/ToastContext';
 
 interface AlertSubscriptionFormProps {
     onClose?: () => void;
 }
 
 const AlertSubscriptionForm: React.FC<AlertSubscriptionFormProps> = ({ onClose }) => {
+    const { addToast } = useToast();
     const [method, setMethod] = useState<'SMS' | 'EMAIL'>('SMS');
     const [contact, setContact] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +29,9 @@ const AlertSubscriptionForm: React.FC<AlertSubscriptionFormProps> = ({ onClose }
             setIsSuccess(true);
         } catch (err: any) {
             console.error('Subscription error:', err);
-            setError(err.response?.data?.message || 'Failed to activate alerts. Please try again.');
+            const errorMessage = err.response?.data?.message || 'Failed to activate alerts. Please try again.';
+            setError(errorMessage);
+            addToast('error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }

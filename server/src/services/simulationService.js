@@ -3,9 +3,9 @@ const { fetchWeatherData } = require('./weatherService');
 const logger = require('../utils/logger');
 const dbService = require('./databaseService');
 
-// Default monitoring location (Godavari River Basin, India)
-const DEFAULT_LAT = parseFloat(process.env.DEFAULT_LAT) || 18.0;
-const DEFAULT_LNG = parseFloat(process.env.DEFAULT_LNG) || 82.0;
+// Default monitoring location (Sangli, Maharashtra, India)
+const DEFAULT_LAT = parseFloat(process.env.DEFAULT_LAT) || 16.8524;
+const DEFAULT_LNG = parseFloat(process.env.DEFAULT_LNG) || 74.5815;
 const WEATHER_UPDATE_INTERVAL = parseInt(process.env.WEATHER_UPDATE_INTERVAL) || 300000; // 5 minutes
 
 // Initial State
@@ -29,12 +29,29 @@ let currentState = {
     },
     // Responder Units State
     responders: [
-        { id: 'alpha', name: 'UNIT-ALPHA', lat: 18.08, lng: 82.18, status: 'ON_DUTY', lastUpdate: Date.now() },
-        { id: 'beta', name: 'UNIT-BETA', lat: 17.95, lng: 82.12, status: 'ON_DUTY', lastUpdate: Date.now() }
+        { id: 'alpha', name: 'UNIT-ALPHA (NDRF)', lat: 16.8550, lng: 74.5850, status: 'ON_DUTY', lastUpdate: Date.now() },
+        { id: 'beta', name: 'UNIT-BETA (FIRE)', lat: 16.8490, lng: 74.5800, status: 'ON_DUTY', lastUpdate: Date.now() },
+        { id: 'charlie', name: 'UNIT-CHARLIE (MED)', lat: 16.8400, lng: 74.6000, status: 'EN_ROUTE', lastUpdate: Date.now() },
+        { id: 'delta', name: 'UNIT-DELTA (LOGS)', lat: 16.8700, lng: 74.6200, status: 'ON_SITE', lastUpdate: Date.now() },
+        { id: 'echo', name: 'UNIT-ECHO (SDRF)', lat: 16.8300, lng: 74.5600, status: 'ON_DUTY', lastUpdate: Date.now() }
     ],
     // Emergency Tasks
     tasks: [
-        { id: 't1', type: 'EVACUATION', title: 'Evacuate Sector 4B', lat: 18.1, lng: 82.1, status: 'PENDING', urgency: 'HIGH', assignedTo: 'alpha' }
+        { id: 't1', type: 'EVACUATION', title: 'Evacuate Sangliwadi Sector', lat: 16.8600, lng: 74.5700, status: 'PENDING', urgency: 'HIGH', assignedTo: 'alpha' },
+        { id: 't2', type: 'MEDICAL', title: 'Medical Camp Setup', lat: 16.8450, lng: 74.6000, status: 'IN_PROGRESS', urgency: 'MODERATE', assignedTo: 'charlie' },
+        { id: 't3', type: 'LOGISTICS', title: 'Sandbagging Krishna Ghat', lat: 16.8520, lng: 74.5800, status: 'PENDING', urgency: 'HIGH', assignedTo: 'beta' }
+    ],
+    // Villages / Zones State
+    villages: [
+        { id: 'v1', name: 'Miraj MIDC', baseRisk: 10, population: 45000, lat: 16.8200, lng: 74.6400, status: 'SAFE', riskLevel: 10 },
+        { id: 'v2', name: 'Haripur Ghat', baseRisk: 40, population: 15000, lat: 16.8300, lng: 74.5700, status: 'SAFE', riskLevel: 40 },
+        { id: 'v3', name: 'Sangliwadi', baseRisk: 50, population: 22000, lat: 16.8650, lng: 74.5650, status: 'SAFE', riskLevel: 50 },
+        { id: 'v4', name: 'Udgaon Bridge', baseRisk: 30, population: 12000, lat: 16.8800, lng: 74.5200, status: 'SAFE', riskLevel: 30 },
+        { id: 'v5', name: 'Bhilawadi', baseRisk: 25, population: 8000, lat: 16.9500, lng: 74.4500, status: 'SAFE', riskLevel: 25 },
+        { id: 'v6', name: 'Vishrambag', baseRisk: 5, population: 55000, lat: 16.8400, lng: 74.6000, status: 'SAFE', riskLevel: 5 },
+        { id: 'v7', name: 'Madhavnagar', baseRisk: 15, population: 30000, lat: 16.8700, lng: 74.6200, status: 'SAFE', riskLevel: 15 },
+        { id: 'v8', name: 'Kupwad', baseRisk: 8, population: 40000, lat: 16.8400, lng: 74.6500, status: 'SAFE', riskLevel: 8 },
+        { id: 'v9', name: 'Kasabe Digraj', baseRisk: 35, population: 18000, lat: 16.8900, lng: 74.5500, status: 'SAFE', riskLevel: 35 }
     ],
     // 24h Forecast (hourly)
     forecast: [],
@@ -115,6 +132,20 @@ const startSimulation = (io) => {
 
         // 2. Determine Risk Status based on water level
         currentState.status = determineRiskStatus(currentState.waterLevel);
+
+        // 2b. Update Village Statuses dynamically
+        currentState.villages = currentState.villages.map(v => {
+            // Simple risk model: Risk increases with water level
+            // Base water level is ~12m. Every 0.1m above 12 adds risk.
+            const waterFactor = Math.max(0, (currentState.waterLevel - 10) * 10); // e.g. 12m -> 20pts
+            const dynamicRisk = Math.min(100, v.baseRisk + waterFactor);
+
+            let status = 'SAFE';
+            if (dynamicRisk > 80) status = 'CRITICAL';
+            else if (dynamicRisk > 50) status = 'WARNING';
+
+            return { ...v, riskLevel: Math.round(dynamicRisk), status };
+        });
 
         currentState.timestamp = Date.now();
 

@@ -7,82 +7,87 @@ interface StatusBannerProps {
 
 const StatusBanner: React.FC<StatusBannerProps> = ({ status = 'safe' }) => {
 
-    // Status Configuration
     const config = {
         safe: {
-            bg: 'bg-emerald-50/50',
+            bg: 'bg-emerald-50',
             border: 'border-emerald-500',
-            iconBg: 'bg-emerald-100/50',
+            accent: 'bg-emerald-600',
             iconColor: 'text-emerald-500',
             titleColor: 'text-emerald-900',
             Icon: CheckCircle,
             title: 'YOU ARE SAFE',
-            subtitle: 'Water Level: 45% (Safe Margin)',
+            subtitle: 'Water Level: 45%',
+            margin: 'Safe Margin',
             desc: 'No immediate threats in your sector.',
-            buttonClass: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-            secondaryButtonClass: 'text-emerald-700 bg-emerald-100/50 hover:bg-emerald-100'
+            primaryBtn: 'Mark Safe for Family',
         },
         warning: {
-            bg: 'bg-orange-50/50',
-            border: 'border-orange-500',
-            iconBg: 'bg-orange-100/50',
-            iconColor: 'text-orange-500',
-            titleColor: 'text-orange-900',
+            bg: 'bg-amber-50',
+            border: 'border-amber-500',
+            accent: 'bg-amber-600',
+            iconColor: 'text-amber-500',
+            titleColor: 'text-amber-900',
             Icon: AlertTriangle,
             title: 'ELEVATED ALERT',
-            subtitle: 'Water Level: 78% (Monitor Closely)',
+            subtitle: 'Water Level: 78%',
+            margin: 'Monitor Closely',
             desc: 'Water levels rising +0.5m/hr.',
-            buttonClass: 'bg-orange-600 hover:bg-orange-700 text-white',
-            secondaryButtonClass: 'text-orange-700 bg-orange-100/50 hover:bg-orange-100'
+            primaryBtn: 'Prepare Now',
         },
         critical: {
-            bg: 'bg-red-50/50',
+            bg: 'bg-red-50',
             border: 'border-red-500',
-            iconBg: 'bg-red-100/50',
+            accent: 'bg-red-600',
             iconColor: 'text-red-500',
             titleColor: 'text-red-900',
             Icon: AlertOctagon,
             title: 'EVACUATE NOW',
-            subtitle: 'Water Level: 95% (CRITICAL)',
+            subtitle: 'Water Level: 95%',
+            margin: 'CRITICAL',
             desc: 'Flood imminent. Move to higher ground!',
-            buttonClass: 'bg-red-600 hover:bg-red-700 text-white animate-pulse',
-            secondaryButtonClass: 'text-red-700 bg-red-100/50 hover:bg-red-100'
+            primaryBtn: 'Start Evacuation',
         }
     };
 
     const current = config[status as keyof typeof config] || config.safe;
 
     return (
-        <div className={`relative overflow-hidden rounded-2xl border-l-[6px] ${current.border} ${current.bg} p-6 h-full shadow-sm transition-all duration-500 border border-slate-100`}>
-            {/* Background pattern for premium feel */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full -mr-16 -mt-16 blur-3xl text-white"></div>
+        <div className={`relative overflow-hidden rounded-3xl border-l-[8px] ${current.border} ${current.bg} p-8 md:p-10 shadow-lg shadow-gray-100 transition-all duration-500`}>
+            {/* Background enhancement */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/40 rounded-full -mr-32 -mt-32 blur-3xl opacity-50"></div>
 
-            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 relative z-10 h-full">
-
-                {/* Left: Icon & Text */}
-                <div className="flex items-center gap-5">
-                    <div className={`p-4 rounded-2xl ${current.iconBg} ${current.iconColor} shadow-inner shrink-0 border border-white/50`}>
-                        <current.Icon className="w-10 h-10 md:w-12 md:h-12" />
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10 relative z-10">
+                <div className="flex items-center gap-6 md:gap-8">
+                    <div className={`p-5 rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 ${current.iconColor} shrink-0`}>
+                        <current.Icon className="w-10 h-10 md:w-14 md:h-14" />
                     </div>
                     <div>
-                        <h2 className={`text-2xl md:text-3xl font-black tracking-tight ${current.titleColor} mb-1 italic`}>
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white ${current.accent}`}>
+                                Current Status
+                            </span>
+                            <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">• Updated 2m ago</span>
+                        </div>
+                        <h2 className={`text-3xl md:text-5xl font-black tracking-tighter ${current.titleColor} leading-none mb-3`}>
                             {current.title}
                         </h2>
-                        <div className="flex flex-col gap-0.5">
-                            <p className="font-bold text-slate-700 text-sm md:text-base">{current.subtitle}</p>
-                            <p className="text-xs md:text-sm text-slate-500 font-medium">
-                                {current.desc} • <span className="opacity-75">Updated: 2m ago</span>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                            <p className="text-lg md:text-xl font-bold text-gray-700">
+                                {current.subtitle} <span className="text-gray-400 font-medium">({current.margin})</span>
+                            </p>
+                            <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                            <p className="text-sm md:text-base text-gray-500 font-semibold tracking-tight">
+                                {current.desc}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Right: Actions */}
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <button className={`px-8 py-4 rounded-xl font-black shadow-lg shadow-slate-200 transition-all active:scale-95 text-center text-sm tracking-wide uppercase ${current.buttonClass}`}>
-                        {status === 'critical' ? 'Start Evacuation' : status === 'warning' ? 'Prepare Now' : 'Mark Safe for Family'}
+                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                    <button className={`flex-1 sm:flex-none px-10 py-5 rounded-2xl font-black shadow-xl transition-all active:scale-[0.98] text-center text-sm tracking-[0.1em] uppercase text-white ${current.accent} hover:brightness-110`}>
+                        {current.primaryBtn}
                     </button>
-                    <button className={`px-8 py-4 rounded-xl font-bold transition-all text-center text-sm border border-white/50 hover:shadow-md ${current.secondaryButtonClass}`}>
+                    <button className="flex-1 sm:flex-none px-10 py-5 rounded-2xl font-bold transition-all text-center text-sm tracking-wide bg-white border-2 border-gray-100 text-gray-700 hover:bg-gray-50 hover:border-gray-200 shadow-sm active:scale-[0.98]">
                         View Surroundings
                     </button>
                 </div>

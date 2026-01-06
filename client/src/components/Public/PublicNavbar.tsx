@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Bell, MapPin, User, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ShieldCheck, Bell, MapPin, User, Loader2, Lock } from 'lucide-react';
 
 const PublicNavbar: React.FC = () => {
     const [locationName, setLocationName] = useState('Sector 4, Nashik');
@@ -51,6 +52,12 @@ const PublicNavbar: React.FC = () => {
         );
     };
 
+    const navigate = useNavigate();
+
+    const handleAdminLogin = () => {
+        navigate('/login');
+    };
+
     return (
         <header className="fixed top-0 left-0 right-0 h-[60px] bg-white border-b border-slate-200 z-50 flex items-center justify-between px-4 lg:px-6 shadow-sm">
             {/* Left: Logo */}
@@ -83,6 +90,16 @@ const PublicNavbar: React.FC = () => {
 
             {/* Right: Actions */}
             <div className="flex items-center justify-end gap-3 w-1/4">
+                <button
+                    onClick={handleAdminLogin}
+                    className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                >
+                    <Lock className="w-4 h-4" />
+                    <span>Admin Login</span>
+                </button>
+
+                <div className="h-6 w-px bg-slate-200 mx-1 hidden md:block"></div>
+
                 <button className="relative p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
                     <Bell className="w-5 h-5" />
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>

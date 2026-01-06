@@ -4,65 +4,67 @@ import { AlertTriangle, TrendingUp, X } from 'lucide-react';
 interface CriticalAlertBannerProps {
     status: 'NORMAL' | 'WARNING' | 'CRITICAL';
     waterLevel: number;
+    onBroadcast?: () => void;
+    onViewIntel?: () => void;
 }
 
-const CriticalAlertBanner: React.FC<CriticalAlertBannerProps> = ({ status, waterLevel }) => {
+const CriticalAlertBanner: React.FC<CriticalAlertBannerProps> = ({ status, waterLevel, onBroadcast, onViewIntel }) => {
     if (status === 'NORMAL') return null;
 
     const isCritical = status === 'CRITICAL';
 
     return (
-        <div className={`w-full text-white rounded-xl shadow-lg mb-6 relative overflow-hidden transition-all duration-500 ${isCritical ? 'bg-gradient-to-r from-red-600 to-red-700 shadow-red-500/20' : 'bg-gradient-to-r from-orange-500 to-orange-600 shadow-orange-500/20'
-            }`}>
-            {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/diagonal-stripes.png')] pointer-events-none"></div>
+        <div className={`w-full text-white rounded-3xl shadow-2xl mb-8 relative overflow-hidden transition-all duration-700 border ${isCritical ? 'bg-red-950/40 border-red-500/30' : 'bg-orange-950/40 border-orange-500/30'}`}>
+            <div className={`absolute inset-0 opacity-20 ${isCritical ? 'bg-red-600' : 'bg-orange-500'} blur-[100px] -z-10`}></div>
 
-            <div className="relative z-10 p-5 flex flex-col md:flex-row items-center justify-between gap-6">
-
-                {/* Left: Alert Info */}
-                <div className="flex-1 flex items-start gap-4">
-                    <div className={`p-3 rounded-full animate-pulse border ${isCritical ? 'bg-red-800/30 border-red-400/30' : 'bg-orange-800/30 border-orange-400/30'}`}>
-                        <AlertTriangle className="w-8 h-8 text-white" />
+            <div className="relative z-10 p-6 flex flex-col md:flex-row items-center justify-between gap-8">
+                {/* Left: Tactical Info */}
+                <div className="flex-1 flex items-start gap-5">
+                    <div className={`p-4 rounded-2xl animate-pulse border-2 shadow-2xl ${isCritical ? 'bg-red-600/20 border-red-500' : 'bg-orange-600/20 border-orange-500'}`}>
+                        <AlertTriangle className={`w-10 h-10 ${isCritical ? 'text-red-500' : 'text-orange-500'}`} />
                     </div>
                     <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h2 className="text-xl font-bold tracking-tight">{isCritical ? 'CRITICAL ALERT' : 'SYSTEM WARNING'}</h2>
-                            <span className="px-2 py-0.5 bg-white/20 text-xs font-semibold rounded uppercase tracking-wider">Godavari River</span>
+                        <div className="flex items-center gap-4 mb-2">
+                            <h2 className="text-2xl font-black italic tracking-tighter uppercase">{isCritical ? 'Critical Anomaly Detected' : 'Operational Warning'}</h2>
+                            <span className="px-3 py-1 bg-[#020617] text-[10px] font-black rounded-lg border border-slate-800 uppercase tracking-[0.2em] text-cyan-500">Sector Delta-4</span>
                         </div>
-                        <p className="text-white/90 text-sm leading-relaxed max-w-2xl">
-                            The water level has reached <span className="font-bold">{waterLevel.toFixed(1)}m ({status})</span>.
+                        <p className="text-slate-300 text-sm font-semibold leading-relaxed max-w-2xl uppercase tracking-tight">
+                            Telemetry alert: Water level at <span className={`font-black ${isCritical ? 'text-red-500' : 'text-orange-500'}`}>{waterLevel.toFixed(1)}m</span>.
                             {isCritical
-                                ? ' Immediate evacuation recommended for low-lying areas. Response teams deployed.'
-                                : ' Monitoring situation closely. Preparedness protocol initiated.'}
+                                ? ' Execute immediate phase 4 evacuation protocols. All response units active.'
+                                : ' Level 2 surveillance required. Monitoring seasonal basin trends.'}
                         </p>
                     </div>
                 </div>
 
-                {/* Middle: Stats */}
-                <div className="hidden lg:flex items-center gap-6 px-6 border-l border-white/20 border-r">
+                {/* Middle: Tactical Telemetry */}
+                <div className="hidden lg:flex items-center gap-10 px-10 border-l border-slate-800 border-r border-slate-800">
                     <div className="text-center">
-                        <div className="text-xs text-white/70 uppercase tracking-widest mb-1">Current Level</div>
-                        <div className="text-2xl font-bold font-mono">{waterLevel.toFixed(1)}m</div>
+                        <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Depth Telemetry</div>
+                        <div className="text-3xl font-black font-mono tracking-tighter text-white">{waterLevel.toFixed(1)}M</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-xs text-white/70 uppercase tracking-widest mb-1">Trend</div>
-                        <div className="text-2xl font-bold font-mono flex items-center justify-center gap-1 text-white">
-                            <TrendingUp className="w-5 h-5" /> {isCritical ? '+0.05m/s' : '+0.01m/s'}
+                        <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Delta Shift</div>
+                        <div className="text-3xl font-black font-mono tracking-tighter flex items-center justify-center gap-2 text-white">
+                            <TrendingUp className={`w-6 h-6 ${isCritical ? 'text-red-500' : 'text-orange-500'}`} /> {isCritical ? '+0.05' : '+0.01'}
                         </div>
                     </div>
                 </div>
 
-                {/* Right: Actions */}
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <button className={`flex-1 md:flex-none whitespace-nowrap px-6 py-2.5 bg-white font-bold rounded-lg transition-colors shadow-sm active:scale-95 ${isCritical ? 'text-red-700 hover:bg-red-50' : 'text-orange-700 hover:bg-orange-50'
-                        }`}>
-                        ⚡ BROADCAST ALERT
+                {/* Right: Operational Actions */}
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <button
+                        onClick={onBroadcast}
+                        className={`flex-1 md:flex-none whitespace-nowrap px-8 py-3 font-black rounded-xl transition-all shadow-xl active:scale-95 uppercase tracking-widest text-xs border ${isCritical ? 'bg-red-600 border-red-500 hover:bg-red-500 text-white' : 'bg-orange-600 border-orange-500 hover:bg-orange-500 text-white'}`}>
+                        Broadcast Alert
                     </button>
-                    <button className="px-4 py-2.5 bg-white/10 border border-white/30 text-white rounded-lg hover:bg-white/20 transition-colors">
-                        DETAILS
+                    <button
+                        onClick={onViewIntel}
+                        className="px-6 py-3 bg-[#020617] border border-slate-800 text-slate-300 font-black rounded-xl hover:bg-slate-900 hover:text-white transition-all text-[10px] uppercase tracking-widest">
+                        Intelligence
                     </button>
-                    <button className="p-2 text-white/70 hover:text-white transition-colors">
-                        <X className="w-5 h-5" />
+                    <button className="p-3 text-slate-600 hover:text-white transition-colors">
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
             </div>

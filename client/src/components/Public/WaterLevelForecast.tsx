@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrendingUp } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 interface ForecastPoint {
     timestamp: number;
@@ -25,8 +26,7 @@ const WaterLevelForecast: React.FC<WaterLevelForecastProps> = ({ forecast, curre
         );
     }
 
-    const maxLevel = Math.max(...forecast.map(p => p.waterLevel), currentLevel || 0, 15);
-    const minLevel = 10; // Base level for visualization
+
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
@@ -42,35 +42,65 @@ const WaterLevelForecast: React.FC<WaterLevelForecastProps> = ({ forecast, curre
                 </div>
             </div>
 
-            <div className="h-48 flex items-end justify-between gap-1.5 px-2 pt-10 pb-2 border-b border-l border-slate-100 bg-slate-50/50 rounded-bl-lg relative mb-4">
-                {/* Danger line */}
-                <div className="absolute top-[20%] left-0 right-0 h-[1px] bg-red-100 border-t border-dashed border-red-300 z-0">
-                    <span className="absolute -top-3.5 left-1 text-[8px] font-black text-red-500 uppercase tracking-tighter">Danger Zone (14.5m+)</span>
-                </div>
-
-                {forecast.slice(0, 8).map((point, i) => {
-                    const height = Math.min(100, Math.max(10, ((point.waterLevel - minLevel) / (maxLevel - minLevel)) * 100));
-                    const time = new Date(point.timestamp).getHours();
-
-                    return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
-                            <div
-                                className={`w-full rounded-t-lg transition-all duration-1000 ${point.waterLevel > 14.5 ? 'bg-gradient-to-t from-red-500 to-red-400' :
-                                    point.waterLevel > 13.0 ? 'bg-gradient-to-t from-orange-500 to-orange-400' :
-                                        'bg-gradient-to-t from-sky-500 to-sky-400'
-                                    }`}
-                                style={{ height: `${height}%` }}
-                            ></div>
-                            <span className="text-[9px] text-slate-400 font-bold">{time}:00</span>
-
-                            {/* Tooltip */}
-                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1.5 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 whitespace-nowrap pointer-events-none z-20">
-                                <div className="font-black text-sky-400">{point.waterLevel.toFixed(1)}m</div>
-                                <div className="opacity-60">{time}:00</div>
-                            </div>
-                        </div>
-                    );
-                })}
+            <div className="h-64 w-full mb-4">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                        data={forecast.slice(0, 8).map(p => ({
+                            time: new Date(p.timestamp).getHours() + ':00',
+                            level: p.waterLevel,
+                            fullDate: new Date(p.timestamp).toLocaleString()
+                        }))}
+                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                        <defs>
+                            <linearGradient id="colorLevel" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorLevelCritical" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
+                                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis
+                            dataKey="time"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }}
+                            dy={10}
+                        />
+                        <YAxis
+                            domain={[10, 'auto']}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 'bold' }}
+                        />
+                        <Tooltip
+                            contentStyle={{
+                                backgroundColor: '#0f172a',
+                                border: 'none',
+                                borderRadius: '12px',
+                                color: '#fff',
+                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                            }}
+                            itemStyle={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '12px' }}
+                            labelStyle={{ color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}
+                            formatter={(value: number) => [`${value.toFixed(1)} Meters`, 'Water Level']}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="level"
+                            stroke="#0ea5e9"
+                            strokeWidth={3}
+                            fillOpacity={1}
+                            fill="url(#colorLevel)"
+                            animationDuration={1500}
+                        />
+                        {/* Reference Line for Critical Level */}
+                        <ReferenceLine y={14.5} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: 'DANGER', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }} />
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
 
             <div className="bg-sky-50 border border-sky-100 p-3 rounded-xl flex items-start gap-3">

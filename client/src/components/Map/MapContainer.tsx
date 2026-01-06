@@ -1,94 +1,17 @@
-import React, { useCallback, useState } from 'react';
-import { GoogleMap, useJsApiLoader, Circle, Marker, InfoWindow } from '@react-google-maps/api';
+import React, { useState, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Circle, Marker, InfoWindow, HeatmapLayer } from '@react-google-maps/api';
 
 const containerStyle = {
     width: '100%',
     height: '100%'
 };
 
-// defaultCenter removed as it was unused and handled in props default
+// Libraries must be a static constant to prevent re-renders
+const LIBRARIES: ("visualization" | "places" | "drawing" | "geometry")[] = ['visualization', 'places'];
 
 // Dark Mode Map Styles (Snazzy Maps / Google Maps Styling Wizard)
-const mapStyles = [
-    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-    {
-        featureType: "administrative.locality",
-        elementType: "labels.text.fill",
-        stylers: [{ color: "#d59563" }],
-    },
-    {
-        featureType: "poi",
-        elementType: "labels.text.fill",
-        stylers: [{ color: "#d59563" }],
-    },
-    {
-        featureType: "poi.park",
-        elementType: "geometry",
-        stylers: [{ color: "#263c3f" }],
-    },
-    {
-        featureType: "poi.park",
-        elementType: "labels.text.fill",
-        stylers: [{ color: "#6b9a76" }],
-    },
-    {
-        featureType: "road",
-        elementType: "geometry",
-        stylers: [{ color: "#38414e" }],
-    },
-    {
-        featureType: "road",
-        elementType: "geometry.stroke",
-        stylers: [{ color: "#212a37" }],
-    },
-    {
-        featureType: "road",
-        elementType: "labels.text.fill",
-        stylers: [{ color: "#9ca5b3" }],
-    },
-    {
-        featureType: "road.highway",
-        elementType: "geometry",
-        stylers: [{ color: "#746855" }],
-    },
-    {
-        featureType: "road.highway",
-        elementType: "geometry.stroke",
-        stylers: [{ color: "#1f2835" }],
-    },
-    {
-        featureType: "road.highway",
-        elementType: "labels.text.fill",
-        stylers: [{ color: "#f3d19c" }],
-    },
-    {
-        featureType: "transit",
-        elementType: "geometry",
-        stylers: [{ color: "#2f3948" }],
-    },
-    {
-        featureType: "transit.station",
-        elementType: "labels.text.fill",
-        stylers: [{ color: "#d59563" }],
-    },
-    {
-        featureType: "water",
-        elementType: "geometry",
-        stylers: [{ color: "#17263c" }],
-    },
-    {
-        featureType: "water",
-        elementType: "labels.text.fill",
-        stylers: [{ color: "#515c6d" }],
-    },
-    {
-        featureType: "water",
-        elementType: "labels.text.stroke",
-        stylers: [{ color: "#17263c" }],
-    },
-];
+// Light/Standard Map Styles
+const mapStyles: google.maps.MapTypeStyle[] = [];
 
 interface MapContainerProps {
     center?: [number, number]; // Keep as array for compatibility, but convert internally
@@ -98,25 +21,43 @@ interface MapContainerProps {
     shelters?: Array<{ id: string; name: string; lat: number; lng: number; capacity: number }>;
     responseTeams?: Array<{ id: string; name: string; lat: number; lng: number; status: 'ON_DUTY' | 'EN_ROUTE' | 'ON_SITE' | string }>;
     tasks?: Array<{ id: string; title: string; lat?: number; lng?: number; status: string; urgency: string }>;
+    showHeatmap?: boolean;
 }
 
 const MapContainer: React.FC<MapContainerProps> = ({
-    center = [20.5937, 78.9629],
+    center = [16.8524, 74.5815],
     zoom = 5,
     floodZones = [],
     villages = [],
     shelters = [],
     responseTeams = [],
-    tasks = []
+    tasks = [],
+    showHeatmap = false
 }) => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+        libraries: LIBRARIES
     });
 
     const [map, setMap] = useState<google.maps.Map | null>(null);
 
     const [selectedMarker, setSelectedMarker] = useState<any | null>(null);
+
+    const heatmapData = React.useMemo(() => {
+        if (!showHeatmap || !window.google) return [];
+        const points: google.maps.LatLng[] = [];
+        // Generate a cluster of points around Sangli
+        const baseLat = 16.8524;
+        const baseLng = 74.5815;
+        for (let i = 0; i < 50; i++) {
+            points.push(new window.google.maps.LatLng(
+                baseLat + (Math.random() - 0.5) * 0.1, // Tighter spread for city level
+                baseLng + (Math.random() - 0.5) * 0.1
+            ));
+        }
+        return points;
+    }, [showHeatmap, isLoaded]);
 
     const onLoad = useCallback(function callback(map: google.maps.Map) {
         setMap(map);
@@ -126,9 +67,11 @@ const MapContainer: React.FC<MapContainerProps> = ({
         setMap(null);
     }, []);
 
-    // Fit bounds to include all markers
+    const isInitialFit = React.useRef(false);
+
+    // Fit bounds only on initial data load
     React.useEffect(() => {
-        if (map) {
+        if (map && !isInitialFit.current) {
             const bounds = new google.maps.LatLngBounds();
             let hasPoints = false;
 
@@ -157,6 +100,7 @@ const MapContainer: React.FC<MapContainerProps> = ({
 
             if (hasPoints) {
                 map.fitBounds(bounds);
+                isInitialFit.current = true;
             }
         }
     }, [map, floodZones, villages, shelters, responseTeams]);
@@ -171,7 +115,7 @@ const MapContainer: React.FC<MapContainerProps> = ({
     }
 
     return (
-        <div className="w-full h-full bg-slate-900">
+        <div className="w-full h-full bg-gray-100">
             <GoogleMap
                 mapContainerStyle={containerStyle}
                 center={mapCenter}
@@ -186,6 +130,16 @@ const MapContainer: React.FC<MapContainerProps> = ({
                     mapTypeControl: false,
                 }}
             >
+                {/* Heatmap Layer */}
+                {showHeatmap && isLoaded && window.google && (
+                    <HeatmapLayer
+                        data={heatmapData}
+                        options={{
+                            radius: 30,
+                            opacity: 0.6,
+                        }}
+                    />
+                )}
                 {/* Flood Zones */}
                 {floodZones.map((zone, idx) => (
                     <React.Fragment key={`zone-${idx}`}>
@@ -215,71 +169,73 @@ const MapContainer: React.FC<MapContainerProps> = ({
                     </React.Fragment>
                 ))}
 
-                {/* Villages */}
+                {/* Villages -> Houses */}
                 {villages.map((village) => (
                     <Marker
                         key={village.id}
                         position={{ lat: village.lat, lng: village.lng }}
                         onClick={() => setSelectedMarker(village)}
                         icon={{
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 7,
-                            fillColor: village.status === 'SAFE' ? '#22c55e' : (village.status === 'WARNING' ? '#f97316' : '#ef4444'),
+                            path: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z", // Home Icon
+                            scale: 1.2,
+                            fillColor: village.status === 'SAFE' ? '#10b981' : (village.status === 'WARNING' ? '#f97316' : '#ef4444'),
                             fillOpacity: 1,
                             strokeWeight: 1,
                             strokeColor: '#ffffff',
+                            anchor: new google.maps.Point(12, 12),
                         }}
                     />
                 ))}
 
-                {/* Shelters */}
+                {/* Shelters -> Shields */}
                 {shelters.map((shelter) => (
                     <Marker
                         key={shelter.id}
                         position={{ lat: shelter.lat, lng: shelter.lng }}
                         onClick={() => setSelectedMarker(shelter)}
                         icon={{
-                            path: "M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z",
-                            fillColor: "#3b82f6",
+                            path: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z", // Shield Icon
+                            fillColor: "#10b981", // Emerald to match control
                             fillOpacity: 1,
                             strokeWeight: 1,
                             strokeColor: "#ffffff",
-                            scale: 1,
+                            scale: 1.2,
                             anchor: new google.maps.Point(12, 12),
                         }}
                     />
                 ))}
 
-                {/* Response Teams */}
+                {/* Response Teams -> Users/Units */}
                 {responseTeams.map((team) => (
                     <Marker
                         key={team.id}
                         position={{ lat: team.lat, lng: team.lng }}
                         onClick={() => setSelectedMarker(team)}
                         icon={{
-                            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-                            scale: 5,
-                            fillColor: team.status === 'ON_DUTY' ? '#10b981' : (team.status === 'EN_ROUTE' ? '#eab308' : '#3b82f6'),
+                            path: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z", // Person Icon
+                            scale: 1.2,
+                            fillColor: team.status === 'ON_DUTY' ? '#3b82f6' : (team.status === 'EN_ROUTE' ? '#eab308' : '#10b981'),
                             fillOpacity: 1,
                             strokeWeight: 1,
                             strokeColor: '#ffffff',
+                            anchor: new google.maps.Point(12, 12),
                         }}
                     />
                 ))}
 
-                {/* Emergency Tasks */}
+                {/* Emergency Tasks -> Alerts */}
                 {tasks.filter(t => t.status !== 'COMPLETED' && t.lat !== undefined && t.lng !== undefined).map((task) => (
                     <Marker
                         key={task.id}
                         position={{ lat: task.lat!, lng: task.lng! }}
                         onClick={() => setSelectedMarker({ ...task, name: task.title, details: `Urgency: ${task.urgency}` })}
                         icon={{
-                            path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z",
+                            path: "M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z", // Warning Triangle
                             fillColor: task.urgency === 'HIGH' ? '#ef4444' : '#f97316',
                             fillOpacity: 1,
                             strokeWeight: 2,
                             strokeColor: '#ffffff',
-                            scale: 1,
+                            scale: 1.2,
                             anchor: new google.maps.Point(12, 12),
                         }}
                     />

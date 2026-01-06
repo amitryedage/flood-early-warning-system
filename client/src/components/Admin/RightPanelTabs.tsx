@@ -1,18 +1,29 @@
 import React, { useState } from 'react';
-import { Search, Filter, MoreHorizontal, MapPin, Navigation, TrendingUp } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, MapPin, Navigation, TrendingUp, Activity, Terminal, Shield, Users } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useSocket, type FloodData } from '../../hooks/useSocket';
 
 interface RightPanelTabsProps {
     floodData: FloodData | null;
+    activeTab?: 'villages' | 'teams' | 'predictions' | 'history';
+    onTabChange?: (tab: 'villages' | 'teams' | 'predictions' | 'history') => void;
 }
 
-const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData }) => {
+const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: propsActiveTab, onTabChange }) => {
     const { socket } = useSocket();
-    const [activeTab, setActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history'>('villages');
+    const [internalActiveTab, setInternalActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history'>('villages');
+
+    const activeTab = propsActiveTab || internalActiveTab;
+    const setActiveTab = (tab: 'villages' | 'teams' | 'predictions' | 'history') => {
+        if (onTabChange) {
+            onTabChange(tab);
+        } else {
+            setInternalActiveTab(tab);
+        }
+    };
     const [dispatchingTo, setDispatchingTo] = useState<string | null>(null);
     const [taskTitle, setTaskTitle] = useState('');
 
-    // Live Data from socket
     const teams = floodData?.responders || [];
     const activeTasks = floodData?.tasks || [];
 
@@ -30,95 +41,79 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData }) => {
         }
     };
 
-    // Mock Data for villages (Static for now)
-    const villagesList = [
-        { id: '1', name: 'Villupuram', riskLevel: 95, population: 45000, status: 'critical', lat: 11.94, lng: 79.48 },
-        { id: '2', name: 'Kolhapur', riskLevel: 87, population: 32000, status: 'critical', lat: 16.70, lng: 74.24 },
-        { id: '3', name: 'Nashik', riskLevel: 72, population: 15000, status: 'danger', lat: 19.99, lng: 73.78 },
-        { id: '4', name: 'Belgaum', riskLevel: 45, population: 12000, status: 'warning', lat: 15.84, lng: 74.49 },
-        { id: '5', name: 'Aurangabad', riskLevel: 28, population: 89000, status: 'safe', lat: 19.87, lng: 75.34 },
-    ];
+    const villagesList = floodData?.villages || [];
+
+    const tabConfigs = [
+        { id: 'villages', label: 'Zones', icon: Shield },
+        { id: 'teams', label: 'Assets', icon: Navigation },
+        { id: 'predictions', label: 'Intel', icon: Activity },
+        { id: 'history', label: 'Logs', icon: Terminal },
+    ] as const;
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            {/* Tab Navigation */}
-            <div className="flex items-center border-b border-slate-100">
-                <button
-                    onClick={() => setActiveTab('villages')}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center border-b-2 transition-colors ${activeTab === 'villages' ? 'border-sky-600 text-sky-600 bg-sky-50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}
-                >
-                    Villages
-                </button>
-                <button
-                    onClick={() => setActiveTab('teams')}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center border-b-2 transition-colors ${activeTab === 'teams' ? 'border-sky-600 text-sky-600 bg-sky-50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}
-                >
-                    Teams
-                </button>
-                <button
-                    onClick={() => setActiveTab('predictions')}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center border-b-2 transition-colors ${activeTab === 'predictions' ? 'border-sky-600 text-sky-600 bg-sky-50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}
-                >
-                    Predict
-                </button>
-                <button
-                    onClick={() => setActiveTab('history')}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center border-b-2 transition-colors ${activeTab === 'history' ? 'border-sky-600 text-sky-600 bg-sky-50' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}
-                >
-                    History
-                </button>
+        <div className="flex flex-col h-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+            {/* Tactical Tab Navigation */}
+            <div className="flex items-center bg-slate-50 border-b border-slate-200 p-1">
+                {tabConfigs.map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`flex-1 flex flex-col items-center gap-1.5 py-4 transition-all relative ${activeTab === tab.id ? 'text-cyan-600' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'animate-pulse' : ''}`} />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
+                        {activeTab === tab.id && (
+                            <div className="absolute bottom-0 left-2 right-2 h-[2px] bg-cyan-600 shadow-sm rounded-full"></div>
+                        )}
+                    </button>
+                ))}
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-white">
 
-                {/* VILLAGES TAB */}
+                {/* ZONES TAB */}
                 {activeTab === 'villages' && (
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 mb-4">
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3">
                             <div className="relative flex-1">
-                                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search villages..."
-                                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                                    placeholder="Search sectors..."
+                                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-1 focus:ring-cyan-500/50 focus:border-cyan-500/50 outline-none placeholder:text-slate-400 transition-all"
                                 />
                             </div>
-                            <button className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600">
+                            <button className="p-3 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-500 transition-all">
                                 <Filter className="w-4 h-4" />
                             </button>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {villagesList.map(village => (
-                                <div key={village.id} className="group p-3 border border-slate-100 rounded-lg hover:border-sky-200 hover:shadow-sm transition-all bg-white cursor-pointer">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h4 className="font-semibold text-slate-700">{village.name}</h4>
-                                        <span className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded-full ${village.status === 'critical' ? 'bg-red-100 text-red-600' :
-                                            village.status === 'danger' ? 'bg-orange-100 text-orange-600' :
-                                                village.status === 'warning' ? 'bg-yellow-100 text-yellow-600' :
-                                                    'bg-emerald-100 text-emerald-600'
+                                <div key={village.id} className="group p-4 bg-white border border-slate-100 shadow-sm hover:shadow-md rounded-2xl hover:border-cyan-500/30 transition-all cursor-pointer relative overflow-hidden">
+                                    <div className={`absolute top-0 left-0 w-1 h-full ${village.status === 'CRITICAL' ? 'bg-red-500' : village.status === 'WARNING' ? 'bg-orange-500' : 'bg-emerald-500'}`}></div>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{village.name}</h4>
+                                        <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border ${village.status === 'CRITICAL' ? 'bg-red-50 text-red-600 border-red-200' :
+                                            village.status === 'WARNING' ? 'bg-orange-50 text-orange-600 border-orange-200' :
+                                                'bg-emerald-50 text-emerald-600 border-emerald-200'
                                             }`}>
-                                            {village.riskLevel}% Risk
+                                            {village.riskLevel}% LIKELIHOOD
                                         </span>
                                     </div>
-                                    <div className="flex items-center justify-between text-xs text-slate-500">
-                                        <span>Pop: {village.population.toLocaleString()}</span>
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-1 hover:bg-slate-100 rounded">
-                                                <MapPin className="w-3.5 h-3.5 text-sky-600" />
-                                            </button>
-                                            <button className="p-1 hover:bg-slate-100 rounded">
-                                                <MoreHorizontal className="w-3.5 h-3.5" />
-                                            </button>
+                                    <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                                        <span className="flex items-center gap-1.5"><Users className="w-3 h-3" /> {village.population.toLocaleString()} EXPOSED</span>
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <MapPin className="w-3.5 h-3.5 text-cyan-500" />
+                                            <MoreHorizontal className="w-3.5 h-3.5 text-slate-400" />
                                         </div>
                                     </div>
-                                    <div className="mt-2 w-full bg-slate-100 h-1 rounded-full overflow-hidden">
+                                    <div className="relative w-full h-1.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                                         <div
-                                            className={`h-full ${village.status === 'critical' ? 'bg-red-500' :
-                                                village.status === 'danger' ? 'bg-orange-500' :
-                                                    village.status === 'warning' ? 'bg-yellow-500' :
-                                                        'bg-emerald-500'
+                                            className={`h-full transition-all duration-1000 ${village.status === 'CRITICAL' ? 'bg-red-500' :
+                                                village.status === 'WARNING' ? 'bg-orange-500' :
+                                                    'bg-emerald-500'
                                                 }`}
                                             style={{ width: `${village.riskLevel}%` }}
                                         ></div>
@@ -129,58 +124,64 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData }) => {
                     </div>
                 )}
 
-                {/* TEAMS TAB */}
+                {/* ASSETS TAB */}
                 {activeTab === 'teams' && (
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-500 uppercase">Live Field Units</span>
-                            <span className="text-xs bg-slate-100 rounded px-2 py-0.5 text-slate-600">Total: {teams.length}</span>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Response Units</span>
+                            <span className="text-[10px] font-black text-cyan-600">SYNCED: {teams.length}</span>
                         </div>
                         {teams.map(team => (
-                            <div key={team.id} className={`p-3 border rounded-lg transition-all bg-white ${dispatchingTo === team.id ? 'border-sky-500 ring-2 ring-sky-100' : 'border-slate-100'}`}>
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <h4 className="font-semibold text-slate-700 text-sm">{team.name}</h4>
-                                        <p className="text-xs text-slate-500">RES-UNIT • {team.status}</p>
+                            <div key={team.id} className={`p-5 bg-white border-2 rounded-2xl transition-all shadow-sm ${dispatchingTo === team.id ? 'border-cyan-500 shadow-cyan-100' : 'border-slate-100'}`}>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-200 group-hover:border-cyan-500/50">
+                                            <Navigation className={`w-5 h-5 ${team.status === 'ON_DUTY' ? 'text-emerald-500' : 'text-slate-400'}`} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-black text-slate-800 text-sm uppercase tracking-tight">{team.name}</h4>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">{team.status}</p>
+                                        </div>
                                     </div>
-                                    <span className={`w-2.5 h-2.5 rounded-full ${team.status === 'ON_DUTY' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-400'}`}></span>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-slate-600 bg-slate-50 p-2 rounded mb-3">
-                                    <MapPin className="w-3 h-3 text-slate-400" />
-                                    {team.lat.toFixed(4)}, {team.lng.toFixed(4)}
+                                    <div className={`w-2.5 h-2.5 rounded-full ${team.status === 'ON_DUTY' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></div>
                                 </div>
 
-                                {/* Active Task for this team */}
+                                <div className="text-[10px] font-mono text-cyan-600 bg-cyan-50/50 p-3 rounded-xl border border-cyan-100 mb-4 flex items-center gap-3">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    COORD: {team.lat.toFixed(4)}N / {team.lng.toFixed(4)}E
+                                </div>
+
                                 {activeTasks.find(t => t.assignedTo === team.id && t.status !== 'COMPLETED') ? (
-                                    <div className="bg-orange-50 border border-orange-100 p-2 rounded mb-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-bold text-orange-600 uppercase">Active Task</span>
-                                            <span className="text-[10px] bg-orange-200 text-orange-700 px-1 rounded font-black">{activeTasks.find(t => t.assignedTo === team.id)?.status}</span>
+                                    <div className="bg-orange-50 border border-orange-200 p-4 rounded-xl relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-2 opacity-10"><Activity className="w-8 h-8 text-orange-500" /></div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">Current Mission</span>
+                                            <span className="text-[9px] bg-orange-500 text-white px-2 py-0.5 rounded-lg font-black uppercase">{activeTasks.find(t => t.assignedTo === team.id)?.status}</span>
                                         </div>
-                                        <p className="text-xs font-bold text-orange-800 mt-1">{activeTasks.find(t => t.assignedTo === team.id)?.title}</p>
+                                        <p className="text-xs font-black text-slate-800 uppercase tracking-tight">{activeTasks.find(t => t.assignedTo === team.id)?.title}</p>
                                     </div>
                                 ) : (
                                     <button
                                         onClick={() => setDispatchingTo(dispatchingTo === team.id ? null : team.id)}
-                                        className="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded font-bold text-xs flex items-center justify-center gap-2 mb-3"
+                                        className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-cyan-500/20 active:scale-95 flex items-center justify-center gap-3"
                                     >
-                                        <Navigation className="w-3 h-3" /> DISPATCH ORDER
+                                        <Terminal className="w-3.5 h-3.5" /> Issue Command
                                     </button>
                                 )}
 
                                 {dispatchingTo === team.id && (
-                                    <form onSubmit={handleDispatch} className="mt-2 pt-3 border-t border-slate-100 space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                    <form onSubmit={handleDispatch} className="mt-4 pt-5 border-t border-slate-100 space-y-3 animate-in slide-in-from-top-2">
                                         <input
                                             autoFocus
                                             type="text"
-                                            placeholder="Task details (e.g. Evacuate 4B)"
-                                            className="w-full px-2 py-2 text-xs border border-slate-200 rounded outline-none focus:ring-2 focus:ring-sky-500"
+                                            placeholder="ENTER TACTICAL ORDER..."
+                                            className="w-full bg-slate-50 px-4 py-3 text-xs font-bold text-slate-800 border border-slate-200 rounded-xl outline-none focus:ring-1 focus:ring-cyan-500 placeholder:text-slate-400 tracking-wider"
                                             value={taskTitle}
                                             onChange={(e) => setTaskTitle(e.target.value)}
                                         />
-                                        <div className="flex gap-2">
-                                            <button type="submit" className="flex-1 py-1.5 bg-slate-900 text-white rounded text-[10px] font-bold">SEND COMMAND</button>
-                                            <button type="button" onClick={() => setDispatchingTo(null)} className="px-3 py-1.5 bg-slate-100 rounded text-[10px] font-bold">CANCEL</button>
+                                        <div className="flex gap-3">
+                                            <button type="submit" className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg">Execute</button>
+                                            <button type="button" onClick={() => setDispatchingTo(null)} className="px-5 py-3 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Abort</button>
                                         </div>
                                     </form>
                                 )}
@@ -189,62 +190,64 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData }) => {
                     </div>
                 )}
 
-                {/* PREDICTIONS TAB */}
+                {/* INTEL TAB */}
                 {activeTab === 'predictions' && (
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-slate-700">Water Level Forecast</h4>
-                            <span className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">Next 5 Hours</span>
-                        </div>
-
-                        {/* CSS Bar Chart - Dynamic */}
-                        <div className="h-48 flex items-end justify-between gap-2 px-2 pt-10 pb-2 border-b border-l border-slate-200 bg-slate-50 relative">
-                            {/* Capacity Markers */}
-                            <div className="absolute top-0 left-0 right-0 h-[1px] bg-red-200 border-t border-dashed border-red-300 z-0">
-                                <span className="absolute -top-3 left-1 text-[8px] font-black text-red-500 uppercase">Danger (15m+)</span>
+                    <div className="space-y-8">
+                        <div>
+                            <div className="flex items-center justify-between mb-6">
+                                <h4 className="text-[11px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 text-cyan-600" /> Depth Projection Layer
+                                </h4>
+                                <span className="text-[10px] font-black bg-cyan-50 text-cyan-600 px-3 py-1 rounded-full border border-cyan-200 uppercase tracking-widest">T+8 HRS</span>
                             </div>
-                            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-slate-200 border-t border-dashed border-slate-300 z-0"></div>
 
-                            {floodData?.forecast.slice(0, 8).map((point, i) => {
-                                // Normalize height (10m = 0%, 20m = 100%)
-                                const height = Math.min(100, Math.max(10, (point.waterLevel - 10) * 10));
-                                const time = new Date(point.timestamp).getHours();
-
-                                return (
-                                    <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative z-10">
-                                        <div
-                                            className={`w-full max-w-[24px] rounded-t-lg transition-all duration-1000 ${point.waterLevel > 14.5 ? 'bg-gradient-to-t from-red-600 to-red-400' :
-                                                point.waterLevel > 13.0 ? 'bg-gradient-to-t from-orange-600 to-orange-400' :
-                                                    'bg-gradient-to-t from-blue-600 to-blue-400'
-                                                }`}
-                                            style={{ height: `${height}%` }}
-                                        ></div>
-                                        <span className="text-[10px] text-slate-500 font-black">{time}:00</span>
-
-                                        {/* Tooltip */}
-                                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 text-white text-[10px] px-2 py-1.5 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 whitespace-nowrap pointer-events-none">
-                                            <div className="font-black text-sky-400 mb-0.5">{point.waterLevel.toFixed(1)}m</div>
-                                            <div className="opacity-60">{time}:00 HRS</div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                            {/* Tactical Bar Chart */}
+                            <div className="h-64 w-full border-b border-l border-slate-200 bg-slate-50 relative rounded-bl-2xl p-4">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart
+                                        data={floodData?.forecast.slice(0, 8).map(p => ({
+                                            time: new Date(p.timestamp).getHours() + ':00',
+                                            level: p.waterLevel
+                                        })) || []}
+                                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                                    >
+                                        <defs>
+                                            <linearGradient id="colorLevelAdmin" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#0891b2" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#0891b2" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" />
+                                        <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#64748b' }} dy={10} />
+                                        <YAxis domain={[10, 'auto']} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#64748b' }} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                            labelStyle={{ color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}
+                                            itemStyle={{ color: '#22d3ee', fontSize: '12px', fontWeight: 'bold' }}
+                                            formatter={(value: any) => [`${Number(value).toFixed(1)} M`, 'DEPTH']}
+                                        />
+                                        <ReferenceLine y={14.5} stroke="#ef4444" strokeDasharray="3 3" label={{ value: 'CRITICAL', fill: '#ef4444', fontSize: 10, fontWeight: 'bold', position: 'right' }} />
+                                        <Area type="monotone" dataKey="level" stroke="#0891b2" strokeWidth={3} fillOpacity={1} fill="url(#colorLevelAdmin)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
                         </div>
 
-                        <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
-                            <div className="flex items-start gap-3">
-                                <TrendingUp className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div className="p-5 bg-cyan-50 border border-cyan-200 rounded-2xl relative overflow-hidden group">
+                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:rotate-12 transition-transform"><Shield className="w-24 h-24 text-cyan-600" /></div>
+                            <div className="relative z-10 flex items-start gap-4">
+                                <Activity className="w-6 h-6 text-cyan-600 mt-1 animate-pulse" />
                                 <div>
-                                    <h5 className="text-sm font-bold text-blue-800 mb-1">AI Prediction Report</h5>
-                                    <p className="text-xs text-blue-700 leading-relaxed">
+                                    <h5 className="text-xs font-black text-slate-800 uppercase tracking-[0.2em] mb-2">Predictive Signal Analysis</h5>
+                                    <p className="text-[11px] font-bold text-slate-500 leading-relaxed uppercase tracking-tight">
                                         {floodData && floodData.forecast && floodData.forecast.length > 0 ? (
                                             floodData.forecast[0].waterLevel > floodData.waterLevel ? (
-                                                <>Water levels are <span className="font-black text-red-600">RISING</span>. Peak surge expected at <span className="font-bold">{new Date(floodData.forecast.reduce((prev, current) => (prev.waterLevel > current.waterLevel) ? prev : current).timestamp).getHours()}:00</span>.</>
+                                                <>Signal indicates <span className="text-red-600 font-extrabold">ACCELERATED SURGE</span>. Estimated saturation at <span className="text-slate-900">{new Date(floodData.forecast.reduce((prev, current) => (prev.waterLevel > current.waterLevel) ? prev : current).timestamp).getHours()}:00</span>.</>
                                             ) : (
-                                                <>Water levels are <span className="font-black text-emerald-600">STABILIZING</span>. No immediate surge detected in next 24h.</>
+                                                <>Signal indicates <span className="text-emerald-600 font-extrabold">STABILIZATION</span>. Baseline levels holding for next observation cycle.</>
                                             )
                                         ) : (
-                                            "Calculating real-time projections..."
+                                            "Awaiting incoming telemetry packets..."
                                         )}
                                     </p>
                                 </div>
@@ -253,33 +256,38 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData }) => {
                     </div>
                 )}
 
-                {/* HISTORY TAB */}
+                {/* LOGS TAB */}
                 {activeTab === 'history' && (
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-semibold text-slate-500 uppercase">Alert Timeline</span>
-                            <span className="text-xs bg-slate-100 rounded px-2 py-0.5 text-slate-600">Today</span>
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Operations Timeline</span>
+                            <span className="text-[10px] font-black text-cyan-600 uppercase">Sector Live</span>
                         </div>
 
-                        <div className="relative border-l-2 border-slate-200 ml-3 space-y-6 pl-6 pb-2">
+                        <div className="relative border-l border-slate-200 ml-4 space-y-8 pl-8 pb-4">
                             {[
-                                { time: '14:30', title: 'Critical Alert Sent', desc: 'Evacuation order for Zone A', type: 'critical' },
-                                { time: '13:15', title: 'Water Level Rise', desc: 'Godavari crossed 14m mark', type: 'warning' },
-                                { time: '12:00', title: 'Team Deployed', desc: 'NDRF Team 1 reached Nashik', type: 'info' },
-                                { time: '10:45', title: 'System Check', desc: 'All sensors operational', type: 'success' },
+                                { time: '14:30', title: 'EXECUTE: ALERT_SENT', desc: 'Evacuation command broadcasted to Zone Delta', type: 'critical' },
+                                { time: '13:15', title: 'TELEMETRY: LEVEL_CROSS', desc: 'Threshold 14M breached in Sector 4', type: 'warning' },
+                                { time: '12:00', title: 'ASSET: UNIT_DEPOY', desc: 'Rescue Unit Alpha reached Nashville point', type: 'info' },
+                                { time: '10:45', title: 'SYSTEM: BATT_PARAM', desc: 'All downstream sensors reporting green', type: 'success' },
                             ].map((item, i) => (
                                 <div key={i} className="relative">
-                                    {/* Dot */}
-                                    <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${item.type === 'critical' ? 'bg-red-500' :
-                                        item.type === 'warning' ? 'bg-orange-500' :
-                                            item.type === 'info' ? 'bg-blue-500' : 'bg-emerald-500'
+                                    {/* Tactical Node */}
+                                    <div className={`absolute -left-[37px] top-1 w-4 h-4 rounded-full border border-white shadow-lg z-20 ${item.type === 'critical' ? 'bg-red-500 shadow-red-200' :
+                                        item.type === 'warning' ? 'bg-orange-500 shadow-orange-200' :
+                                            item.type === 'info' ? 'bg-cyan-500 shadow-cyan-200' : 'bg-emerald-500'
                                         }`}></div>
 
-                                    <div className="flex justify-between items-start">
-                                        <h5 className="text-sm font-bold text-slate-700">{item.title}</h5>
-                                        <span className="text-[10px] text-slate-400 font-mono">{item.time}</span>
+                                    <div className="absolute -left-[37px] top-1 w-4 h-4 rounded-full bg-inherit animate-ping opacity-20"></div>
+
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h5 className={`text-[11px] font-black tracking-widest uppercase ${item.type === 'critical' ? 'text-red-500' :
+                                            item.type === 'warning' ? 'text-orange-500' :
+                                                'text-slate-700'
+                                            }`}>{item.title}</h5>
+                                        <span className="text-[9px] text-slate-400 font-black font-mono tracking-widest uppercase">{item.time} Z</span>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight leading-relaxed">{item.desc}</p>
                                 </div>
                             ))}
                         </div>
