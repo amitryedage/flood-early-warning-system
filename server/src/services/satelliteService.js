@@ -142,7 +142,16 @@ const calculateNDWI = async (item) => {
         // Extract band URLs (B03 = Green, B08 = NIR)
         const greenBandUnsigned = item.assets?.B03?.href || null;
         const nirBandUnsigned = item.assets?.B08?.href || null;
-        const visualUrlUnsigned = item.assets?.visual?.href || item.assets?.rendered_preview?.href || null;
+
+        // Prioritize browser-renderable visual formats
+        // 1. rendered_preview (usually PNG/JPG from Planetary Computer)
+        // 2. thumbnail (usually PNG/JPG)
+        // 3. visual (fallback, often GeoTIFF which browsers can't render)
+        const visualUrlUnsigned =
+            item.assets?.rendered_preview?.href ||
+            item.assets?.thumbnail?.href ||
+            item.assets?.visual?.href ||
+            null;
 
         if (!greenBandUnsigned || !nirBandUnsigned) {
             logger.warn('⚠️  Missing required bands for NDWI calculation');
