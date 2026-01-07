@@ -14,6 +14,7 @@ import EmergencyContacts from '../../components/Public/EmergencyContacts';
 import FloodHouseVisual from '../../components/Public/FloodHouseVisual';
 import WeatherParticles from '../../components/Effects/WeatherParticles';
 import { AlertOctagon, Map as MapIcon, X } from 'lucide-react';
+import RescueStatus from '../../components/Public/RescueStatus';
 import { useSocket } from '../../hooks/useSocket';
 import { useToast } from '../../context/ToastContext';
 
@@ -27,6 +28,7 @@ const PublicDashboard: React.FC = () => {
     const [showReportForm, setShowReportForm] = useState(false);
     const [showPublicMap, setShowPublicMap] = useState(false);
     const [showAlertForm, setShowAlertForm] = useState(false);
+    const [isSosActive, setIsSosActive] = useState(false);
     const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
     const [selectedVillage, setSelectedVillage] = useState<any | null>(null);
 
@@ -182,12 +184,10 @@ const PublicDashboard: React.FC = () => {
                         if (action === 'ALERTS') setShowAlertForm(true);
                         if (action === 'SHELTERS') setShowPublicMap(true); // Map shows shelters
                         if (action === 'SOS') {
+                            setIsSosActive(true);
                             if ("geolocation" in navigator) {
-                                navigator.geolocation.getCurrentPosition((position) => {
-                                    const { latitude, longitude } = position.coords;
-                                    addToast('error', `🚨 SOS BROADCASTED! Rescue teams notified of your location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, 6000);
-                                    // In a real app, emit to socket
-                                    // socket?.emit('emergency-sos', { lat: latitude, lng: longitude });
+                                navigator.geolocation.getCurrentPosition(() => {
+                                    addToast('error', `🚨 SOS BROADCASTED! Rescue teams notified of your location.`, 6000);
                                 });
                             } else {
                                 addToast('error', "🚨 EMERGENCY ALERT SENT! (GPS unavailable)", 4000);
@@ -344,6 +344,8 @@ const PublicDashboard: React.FC = () => {
                     </div>
                 )
             }
+            {/* Live Rescue Mission Simulation Overlay */}
+            {isSosActive && <RescueStatus onClose={() => setIsSosActive(false)} />}
         </div>
     );
 };

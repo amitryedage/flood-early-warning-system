@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { Search, Filter, MoreHorizontal, MapPin, Navigation, TrendingUp, Activity, Terminal, Shield, Users, Satellite, Cloud, Info, Zap } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, MapPin, Navigation, TrendingUp, Activity, Terminal, Shield, Users, Satellite, Cloud, Info, Zap, Radio } from 'lucide-react';
 import { useSatelliteData } from '../../hooks/useSatelliteData';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useSocket, type FloodData } from '../../hooks/useSocket';
+import CCTVFeed from './CCTVFeed';
 
 interface RightPanelTabsProps {
     floodData: FloodData | null;
-    activeTab?: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite';
-    onTabChange?: (tab: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite') => void;
+    activeTab?: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite' | 'surveillance';
+    onTabChange?: (tab: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite' | 'surveillance') => void;
 }
 
 const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: propsActiveTab, onTabChange }) => {
     const { socket } = useSocket();
-    const [internalActiveTab, setInternalActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history' | 'satellite'>('villages');
+    const [internalActiveTab, setInternalActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history' | 'satellite' | 'surveillance'>('villages');
 
     const activeTab = propsActiveTab || internalActiveTab;
-    const setActiveTab = (tab: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite') => {
+    const setActiveTab = (tab: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite' | 'surveillance') => {
         if (onTabChange) {
             onTabChange(tab);
         } else {
@@ -48,6 +49,7 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
         { id: 'villages', label: 'Zones', icon: Shield },
         { id: 'teams', label: 'Assets', icon: Navigation },
         { id: 'predictions', label: 'Intel', icon: Activity },
+        { id: 'surveillance', label: 'Video', icon: Radio },
         { id: 'satellite', label: 'Sat', icon: Satellite },
         { id: 'history', label: 'Logs', icon: Terminal },
     ] as const;
@@ -443,6 +445,12 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
                                 <button className="mt-4 text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Retry Orbital Link</button>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {activeTab === 'surveillance' && (
+                    <div className="animate-in fade-in duration-500">
+                        <CCTVFeed />
                     </div>
                 )}
 

@@ -6,8 +6,9 @@ import CriticalAlertBanner from '../../components/Admin/CriticalAlertBanner';
 import KeyMetricsGrid from '../../components/Admin/KeyMetricsGrid';
 import RightPanelTabs from '../../components/Admin/RightPanelTabs';
 import SimulationPanel from '../../components/Controls/SimulationPanel';
-import CCTVFeed from '../../components/Admin/CCTVFeed';
 import WeatherParticles from '../../components/Effects/WeatherParticles';
+import OperationalTicker from '../../components/Admin/OperationalTicker';
+import ImpactEstimation from '../../components/Admin/ImpactEstimation';
 import { useSocket } from '../../hooks/useSocket';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../context/ToastContext';
@@ -47,7 +48,7 @@ const WarRoom: React.FC = () => {
     };
 
     const data = floodData || defaultData;
-    const [activeTab, setActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history' | 'satellite'>('villages');
+    const [activeTab, setActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history' | 'satellite' | 'surveillance'>('villages');
     const { addToast } = useToast();
 
     const handleBroadcast = () => {
@@ -213,17 +214,24 @@ const WarRoom: React.FC = () => {
 
                 {/* RIGHT: INTELLIGENCE PANEL */}
                 {!isMapFullscreen && (
-                    <div className="w-full lg:w-[420px] h-[650px] animate-in slide-in-from-right duration-500 space-y-4">
-                        {/* CCTV Surveillance Grid */}
-                        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-6">
-                            <CCTVFeed />
-                        </div>
+                    <div className="w-full lg:w-[420px] animate-in slide-in-from-right duration-500 flex flex-col gap-4">
+                        {/* 1. Masterstroke: AI Intelligence Ticker */}
+                        <OperationalTicker />
 
-                        <RightPanelTabs
-                            floodData={floodData}
-                            activeTab={activeTab}
-                            onTabChange={setActiveTab}
+                        {/* 2. Masterstroke: Impact Assessment Layer */}
+                        <ImpactEstimation
+                            waterLevel={data.waterLevel}
+                            status={data.status}
                         />
+
+                        {/* 3. Existing Controls - Refactored as tabs/bottom content */}
+                        <div className="flex-1 bg-white rounded-3xl shadow-xl border border-slate-200 p-6 overflow-hidden">
+                            <RightPanelTabs
+                                floodData={floodData}
+                                activeTab={activeTab}
+                                onTabChange={setActiveTab}
+                            />
+                        </div>
                     </div>
                 )}
 
