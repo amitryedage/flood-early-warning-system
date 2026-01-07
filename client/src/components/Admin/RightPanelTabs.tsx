@@ -266,6 +266,30 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
                                 </div>
                             </div>
                         </div>
+
+                        {/* Predictive Resource Allocation */}
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <Zap className="w-3 h-3 text-amber-500" /> Resource Coverage Analysis
+                            </h4>
+                            <div className="grid grid-cols-1 gap-3">
+                                {[
+                                    { label: 'Asset Utilization', value: 85, color: 'bg-indigo-500' },
+                                    { label: 'Shelter Capacity', value: 42, color: 'bg-emerald-500' },
+                                    { label: 'Food/Medicine Buffer', value: 68, color: 'bg-amber-500' }
+                                ].map((stat, i) => (
+                                    <div key={i} className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight">{stat.label}</span>
+                                            <span className="text-[10px] font-black text-slate-900">{stat.value}%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                                            <div className={`h-full ${stat.color} transition-all duration-1000`} style={{ width: `${stat.value}%` }}></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 )}
 

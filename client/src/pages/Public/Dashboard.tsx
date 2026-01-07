@@ -15,17 +15,20 @@ import FloodHouseVisual from '../../components/Public/FloodHouseVisual';
 import WeatherParticles from '../../components/Effects/WeatherParticles';
 import { AlertOctagon, Map as MapIcon, X } from 'lucide-react';
 import { useSocket } from '../../hooks/useSocket';
+import { useToast } from '../../context/ToastContext';
 
 import { useJsApiLoader } from '@react-google-maps/api';
 
-const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["places", "visualization"];
+const libraries: ("places" | "geometry" | "drawing" | "visualization")[] = ["visualization", "places"];
 
 const PublicDashboard: React.FC = () => {
     const { floodData, isConnected: connected } = useSocket();
+    const { addToast } = useToast();
     const [showReportForm, setShowReportForm] = useState(false);
     const [showPublicMap, setShowPublicMap] = useState(false);
     const [showAlertForm, setShowAlertForm] = useState(false);
     const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
+    const [selectedVillage, setSelectedVillage] = useState<any | null>(null);
 
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -33,6 +36,69 @@ const PublicDashboard: React.FC = () => {
         libraries
     });
 
+    const handleSearch = async (term: string) => {
+        // Open Map
+        setShowPublicMap(true);
+
+        // 1. Direct Village Match
+        const match = floodData?.villages.find(v => v.name.toLowerCase().includes(term.toLowerCase()));
+        if (match) {
+            setSelectedVillage(match);
+            setUserLoc({ lat: match.lat, lng: match.lng });
+            addToast('success', `Location Found: Focusing on ${match.name} Sector`, 3000);
+            return;
+        }
+
+        // 2. Geocoding Fallback (Pincodes/Areas)
+        if (isLoaded && window.google && window.google.maps) {
+            const geocoder = new window.google.maps.Geocoder();
+
+            // Intelligence: If input is a 6-digit number, treat it as an Indian Pincode
+            const isPincode = /^\d{6}$/.test(term.trim());
+            const searchQuery = isPincode ? `${term.trim()}, India` : term;
+
+            geocoder.geocode({ address: searchQuery }, (results, status) => {
+                if (status === 'OK' && results && results[0]) {
+                    const location = results[0].geometry.location;
+                    const searchLat = location.lat();
+                    const searchLng = location.lng();
+
+                    setUserLoc({ lat: searchLat, lng: searchLng });
+
+                    // Find Closest monitored village to this location
+                    if (floodData?.villages && floodData.villages.length > 0) {
+                        let closest = floodData.villages[0];
+                        let minOrb = Number.MAX_VALUE;
+
+                        floodData.villages.forEach(v => {
+                            // Simple Euclidean distance for selection logic
+                            const dist = Math.sqrt(Math.pow(v.lat - searchLat, 2) + Math.pow(v.lng - searchLng, 2));
+                            if (dist < minOrb) {
+                                minOrb = dist;
+                                closest = v;
+                            }
+                        });
+
+                        setSelectedVillage(closest);
+                        addToast('info', `Showing data for nearest monitored sector: ${closest.name}`, 4000);
+                    } else {
+                        setSelectedVillage(null);
+                    }
+                } else if (status === 'ZERO_RESULTS') {
+                    addToast('warning', 'Location outside monitored area. Currently optimized for Sangli region.', 4000);
+                } else if (status === 'OVER_QUERY_LIMIT') {
+                    addToast('warning', 'Search limit reached. Please try again soon.', 3000);
+                } else if (status === 'REQUEST_DENIED') {
+                    addToast('info', 'Global search disabled. Please enter a Sangli sector name (e.g. Sangli, Miraj).', 5000);
+                } else {
+                    addToast('info', 'Searching... Please try a local sector name.', 3000);
+                    console.warn('Geocode failed due to: ' + status);
+                }
+            });
+        } else {
+            console.warn('Google Maps API not loaded yet');
+        }
+    };
     return (
         <div className="w-full space-y-8 animate-in fade-in duration-500">
             {/* Weather Particles Effect */}
@@ -49,34 +115,40 @@ const PublicDashboard: React.FC = () => {
             )}
 
             {/* Level 1: Global Safety Status (Hero) */}
-            <div className="w-full">
-                <HeroSection onSearch={async (term) => {
-                    // Open Map
-                    setShowPublicMap(true);
+            <div className="w-full space-y-6">
+                <HeroSection onSearch={handleSearch} />
 
-                    if (isLoaded && window.google && window.google.maps) {
-                        const geocoder = new window.google.maps.Geocoder();
-                        geocoder.geocode({ address: term }, (results, status) => {
-                            if (status === 'OK' && results && results[0]) {
-                                const location = results[0].geometry.location;
-                                setUserLoc({ lat: location.lat(), lng: location.lng() });
-                            } else {
-                                console.warn('Geocode failed due to: ' + status);
-                            }
-                        });
-                    } else {
-                        console.warn('Google Maps API not loaded yet');
+                {/* Relocated Stats Row */}
+                <div className="flex flex-wrap justify-center gap-4 md:gap-12 py-6 bg-white rounded-3xl border border-slate-100 shadow-sm animate-in fade-in duration-700">
+                    <div className="text-center px-6">
+                        <div className="text-3xl font-black text-slate-900 mb-1">42</div>
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Sensors</div>
+                    </div>
+                    <div className="hidden md:block w-px h-10 bg-slate-100"></div>
+                    <div className="text-center px-6">
+                        <div className="text-3xl font-black text-red-600 mb-1">0</div>
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Critical Alerts</div>
+                    </div>
+                    <div className="hidden md:block w-px h-10 bg-slate-100"></div>
+                    <div className="text-center px-6">
+                        <div className="text-3xl font-black text-cyan-600 mb-1">24/7</div>
+                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">System Monitoring</div>
+                    </div>
+                </div>
+
+                <StatusBanner
+                    status={
+                        selectedVillage ? (selectedVillage.status.toLowerCase() as any) :
+                            floodData?.status === 'NORMAL' ? 'safe' :
+                                floodData?.status.toLowerCase() as any || "safe"
                     }
-                }} />
-                <StatusBanner status={
-                    floodData?.status === 'NORMAL' ? 'safe' :
-                        floodData?.status.toLowerCase() as any || "safe"
-                } />
+                    villageName={selectedVillage?.name}
+                    customSubtitle={selectedVillage ? `Risk Level: ${selectedVillage.riskLevel}%` : undefined}
+                />
             </div>
 
             {/* Level 2 & 3: Quick Actions & Key Metrics */}
             <div className="dashboard-grid">
-                {/* Critical Actions Sidebar / Top Panel */}
                 <div className="col-span-12 lg:col-span-4 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
                         <button
@@ -109,7 +181,18 @@ const PublicDashboard: React.FC = () => {
                     <QuickActionsGrid onAction={(action) => {
                         if (action === 'ALERTS') setShowAlertForm(true);
                         if (action === 'SHELTERS') setShowPublicMap(true); // Map shows shelters
-                        // Handle other actions if needed
+                        if (action === 'SOS') {
+                            if ("geolocation" in navigator) {
+                                navigator.geolocation.getCurrentPosition((position) => {
+                                    const { latitude, longitude } = position.coords;
+                                    addToast('error', `🚨 SOS BROADCASTED! Rescue teams notified of your location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, 6000);
+                                    // In a real app, emit to socket
+                                    // socket?.emit('emergency-sos', { lat: latitude, lng: longitude });
+                                });
+                            } else {
+                                addToast('error', "🚨 EMERGENCY ALERT SENT! (GPS unavailable)", 4000);
+                            }
+                        }
                     }} />
                 </div>
 
@@ -129,11 +212,16 @@ const PublicDashboard: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="standard-card">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Threat Gauge</h3>
-                            <ThreatGauge waterLevel={floodData?.waterLevel} />
+                            <ThreatGauge
+                                waterLevel={floodData?.waterLevel}
+                                riskLevel={selectedVillage?.riskLevel}
+                            />
                         </div>
                         <div className="standard-card">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Your Property Risk</h3>
-                            <FloodHouseVisual waterLevel={floodData?.waterLevel || 10} />
+                            <FloodHouseVisual
+                                waterLevel={selectedVillage ? (10 + (selectedVillage.riskLevel / 100) * 5) : (floodData?.waterLevel || 10)}
+                            />
                         </div>
                     </div>
                 </div>
@@ -185,71 +273,77 @@ const PublicDashboard: React.FC = () => {
             </div>
 
             {/* Overlays (Report, Map, Subscription) - Unchanged Logic */}
-            {showReportForm && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowReportForm(false)}></div>
-                    <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-                        <div className="p-8">
-                            <button
-                                onClick={() => setShowReportForm(false)}
-                                className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full"
-                            >
-                                <X className="w-5 h-5 text-slate-400" />
-                            </button>
-                            <FloodReportForm onClose={() => setShowReportForm(false)} />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {showPublicMap && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPublicMap(false)}></div>
-                    <div className="relative bg-white w-full max-w-5xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col">
-                        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
-                            <div>
-                                <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg italic">
-                                    <MapIcon className="text-sky-600" /> LIVE EVACUATION MAP
-                                </h3>
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Authorized Shelter Locations & Risk Zones</p>
+            {
+                showReportForm && (
+                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowReportForm(false)}></div>
+                        <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                            <div className="p-8">
+                                <button
+                                    onClick={() => setShowReportForm(false)}
+                                    className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full"
+                                >
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
+                                <FloodReportForm onClose={() => setShowReportForm(false)} />
                             </div>
-                            <button
-                                onClick={() => setShowPublicMap(false)}
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                            >
-                                <X className="w-6 h-6 text-slate-400" />
-                            </button>
-                        </div>
-                        <div className="flex-1 relative">
-                            <PublicMap
-                                isLoaded={isLoaded}
-                                userLocation={userLoc}
-                                floodZones={floodData ? [{
-                                    lat: 18.0,
-                                    lng: 82.0,
-                                    radius: 50000 * (floodData.waterLevel / 12),
-                                    severity: floodData.status === 'CRITICAL' ? 'HIGH' : 'MODERATE'
-                                }] : []}
-                                shelters={[
-                                    { id: 's1', name: 'Community Center', lat: 18.05, lng: 82.05, capacity: 500 },
-                                    { id: 's2', name: 'High School', lat: 17.85, lng: 81.85, capacity: 1000 }
-                                ]}
-                            />
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {showAlertForm && (
-                <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAlertForm(false)}></div>
-                    <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
-                        <div className="p-8">
-                            <AlertSubscriptionForm onClose={() => setShowAlertForm(false)} />
+            {
+                showPublicMap && (
+                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPublicMap(false)}></div>
+                        <div className="relative bg-white w-full max-w-5xl h-[85vh] rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col">
+                            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
+                                <div>
+                                    <h3 className="font-black text-slate-800 flex items-center gap-2 text-lg italic">
+                                        <MapIcon className="text-sky-600" /> LIVE EVACUATION MAP
+                                    </h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Authorized Shelter Locations & Risk Zones</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowPublicMap(false)}
+                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                >
+                                    <X className="w-6 h-6 text-slate-400" />
+                                </button>
+                            </div>
+                            <div className="flex-1 relative">
+                                <PublicMap
+                                    isLoaded={isLoaded}
+                                    userLocation={userLoc}
+                                    floodZones={floodData ? [{
+                                        lat: 18.0,
+                                        lng: 82.0,
+                                        radius: 50000 * (floodData.waterLevel / 12),
+                                        severity: floodData.status === 'CRITICAL' ? 'HIGH' : 'MODERATE'
+                                    }] : []}
+                                    shelters={[
+                                        { id: 's1', name: 'Community Center', lat: 18.05, lng: 82.05, capacity: 500 },
+                                        { id: 's2', name: 'High School', lat: 17.85, lng: 81.85, capacity: 1000 }
+                                    ]}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {
+                showAlertForm && (
+                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowAlertForm(false)}></div>
+                        <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                            <div className="p-8">
+                                <AlertSubscriptionForm onClose={() => setShowAlertForm(false)} />
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
         </div>
     );
 };

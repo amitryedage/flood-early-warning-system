@@ -33,15 +33,23 @@ const PublicMap: React.FC<PublicMapProps> = ({ userLocation, floodZones, shelter
     // If the parent is loading it, we just wait.
 
     const [selectedShelter, setSelectedShelter] = useState<any | null>(null);
+    const [map, setMap] = useState<google.maps.Map | null>(null);
 
-
-    const onLoad = useCallback(function callback() {
-        // Map loaded
+    const onLoad = useCallback(function callback(mapInstance: google.maps.Map) {
+        setMap(mapInstance);
     }, []);
 
     const onUnmount = useCallback(function callback() {
-        // Map unmounted
+        setMap(null);
     }, []);
+
+    // Effect to pan map when location changes
+    React.useEffect(() => {
+        if (map && userLocation) {
+            map.panTo(userLocation);
+            map.setZoom(13);
+        }
+    }, [map, userLocation]);
 
     // Center map on user or first flood zone
     const center = userLocation || (floodZones.length > 0 ? { lat: floodZones[0].lat, lng: floodZones[0].lng } : { lat: 18.0, lng: 82.0 });

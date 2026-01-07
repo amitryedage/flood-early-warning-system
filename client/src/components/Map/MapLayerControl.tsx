@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, CloudRain, Shield, AlertTriangle, Users, Satellite } from 'lucide-react';
+import { Layers, CloudRain, Shield, AlertTriangle, Users, Satellite, Navigation } from 'lucide-react';
 
 export interface MapLayers {
     floodZones: boolean;
@@ -7,6 +7,7 @@ export interface MapLayers {
     teams: boolean;
     rainfall: boolean;
     satellite: boolean;
+    aiRoute: boolean;
 }
 
 interface MapLayerControlProps {
@@ -81,6 +82,16 @@ const MapLayerControl: React.FC<MapLayerControlProps> = ({ layers, onToggle }) =
                             <Satellite className="w-3.5 h-3.5" /> Satellite
                         </span>
                         <div className={`w-2 h-2 rounded-full ${layers.satellite ? 'bg-indigo-600' : 'bg-slate-300'}`} />
+                    </button>
+
+                    <button
+                        onClick={() => onToggle('aiRoute')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-xs font-bold transition-all ${layers.aiRoute ? 'bg-sky-50 text-sky-600' : 'text-slate-500 hover:bg-slate-100'}`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <Navigation className="w-3.5 h-3.5" /> AI Route
+                        </span>
+                        <div className={`w-2 h-2 rounded-full ${layers.aiRoute ? 'bg-sky-600' : 'bg-slate-300'}`} />
                     </button>
                 </div>
             </div>

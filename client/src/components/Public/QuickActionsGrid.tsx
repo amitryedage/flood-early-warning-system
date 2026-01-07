@@ -2,11 +2,19 @@ import React from 'react';
 import { Bell, Home, PhoneCall, BookOpen } from 'lucide-react';
 
 interface QuickActionsGridProps {
-    onAction?: (action: 'ALERTS' | 'SHELTERS' | 'CONTACTS' | 'TIPS') => void;
+    onAction?: (action: 'ALERTS' | 'SHELTERS' | 'CONTACTS' | 'TIPS' | 'SOS') => void;
 }
 
 const QuickActionsGrid: React.FC<QuickActionsGridProps> = ({ onAction }) => {
     const actions = [
+        {
+            id: 'SOS',
+            label: 'SOS HELP',
+            sub: 'Instant Rescue',
+            icon: PhoneCall,
+            color: 'text-white',
+            bg: 'bg-red-600',
+        },
         {
             id: 'ALERTS',
             label: 'Set Alerts',

@@ -2,11 +2,13 @@ import React from 'react';
 
 interface ThreatGaugeProps {
     waterLevel?: number;
+    riskLevel?: number; // 0-100
 }
 
-const ThreatGauge: React.FC<ThreatGaugeProps> = ({ waterLevel = 0 }) => {
+const ThreatGauge: React.FC<ThreatGaugeProps> = ({ waterLevel = 0, riskLevel }) => {
     // Normalize water level to 0-100 range (assuming 12m is max)
-    const percentage = Math.min((waterLevel / 12) * 100, 100);
+    // If riskLevel is provided (from village), use it directly as the priority
+    const percentage = riskLevel !== undefined ? riskLevel : Math.min((waterLevel / 12) * 100, 100);
 
     const zones = [
         { label: 'Safe', max: 25, color: 'bg-emerald-500', text: 'text-emerald-500' },

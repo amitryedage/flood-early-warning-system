@@ -71,23 +71,6 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onSearch }) => {
                     </div>
                 </form>
 
-                {/* Stats Row */}
-                <div className="absolute bottom-8 left-0 w-full flex justify-center gap-12 animate-in fade-in duration-1000 delay-500">
-                    <div className="text-center">
-                        <div className="text-2xl font-black text-white mb-1">42</div>
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Sensors</div>
-                    </div>
-                    <div className="w-px h-8 bg-white/10"></div>
-                    <div className="text-center">
-                        <div className="text-2xl font-black text-white mb-1">0</div>
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Critical Alerts</div>
-                    </div>
-                    <div className="w-px h-8 bg-white/10"></div>
-                    <div className="text-center">
-                        <div className="text-2xl font-black text-white mb-1">24/7</div>
-                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monitoring</div>
-                    </div>
-                </div>
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { GoogleMap, useJsApiLoader, Circle, Marker, InfoWindow, HeatmapLayer } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Circle, Marker, InfoWindow, HeatmapLayer, Polyline, Polygon } from '@react-google-maps/api';
 import { useSatelliteData } from '../../hooks/useSatelliteData';
 
 const containerStyle = {
@@ -24,6 +24,7 @@ interface MapContainerProps {
     tasks?: Array<{ id: string; title: string; lat?: number; lng?: number; status: string; urgency: string }>;
     showHeatmap?: boolean;
     showSatellite?: boolean;
+    showAIRoute?: boolean;
 }
 
 const MapContainer: React.FC<MapContainerProps> = ({
@@ -35,7 +36,8 @@ const MapContainer: React.FC<MapContainerProps> = ({
     responseTeams = [],
     tasks = [],
     showHeatmap = false,
-    showSatellite = false
+    showSatellite = false,
+    showAIRoute = false
 }) => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -215,6 +217,47 @@ const MapContainer: React.FC<MapContainerProps> = ({
                                 'rgba(191, 0, 31, 1)',
                                 'rgba(255, 0, 0, 1)'
                             ]
+                        }}
+                    />
+                )}
+                {/* Inundation Zone (Polygon) */}
+                {floodZones.some(z => z.severity === 'HIGH') && (
+                    <Polygon
+                        paths={[
+                            { lat: 16.8500, lng: 74.5800 },
+                            { lat: 16.8600, lng: 74.5800 },
+                            { lat: 16.8600, lng: 74.5900 },
+                            { lat: 16.8500, lng: 74.5900 }
+                        ]}
+                        options={{
+                            fillColor: "#ef4444",
+                            fillOpacity: 0.2,
+                            strokeColor: "#ef4444",
+                            strokeOpacity: 0.8,
+                            strokeWeight: 2,
+                            editable: false,
+                            draggable: false
+                        }}
+                    />
+                )}
+                {/* AI Suggested Rescue Route */}
+                {showAIRoute && (
+                    <Polyline
+                        path={[
+                            { lat: 16.8524, lng: 74.5815 },
+                            { lat: 16.8550, lng: 74.5900 },
+                            { lat: 16.8600, lng: 74.6000 },
+                            { lat: 16.8650, lng: 74.6100 }
+                        ]}
+                        options={{
+                            strokeColor: "#0ea5e9",
+                            strokeOpacity: 0.8,
+                            strokeWeight: 4,
+                            icons: [{
+                                icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW },
+                                offset: '100%',
+                                repeat: '50px'
+                            }]
                         }}
                     />
                 )}

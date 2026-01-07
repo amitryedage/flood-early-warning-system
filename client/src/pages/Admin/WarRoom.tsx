@@ -24,7 +24,8 @@ const WarRoom: React.FC = () => {
         shelters: true,
         teams: true,
         rainfall: false,
-        satellite: false
+        satellite: false,
+        aiRoute: false
     });
 
     const toggleLayer = (layer: keyof MapLayers) => {
@@ -167,6 +168,7 @@ const WarRoom: React.FC = () => {
                             tasks={floodData?.tasks || []}
                             showHeatmap={activeLayers.rainfall}
                             showSatellite={activeLayers.satellite}
+                            showAIRoute={activeLayers.aiRoute}
                         />
 
                         {/* Layer Controls */}

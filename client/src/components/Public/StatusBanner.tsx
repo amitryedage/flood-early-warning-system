@@ -3,9 +3,12 @@ import { CheckCircle, AlertTriangle, AlertOctagon } from 'lucide-react';
 
 interface StatusBannerProps {
     status: 'safe' | 'warning' | 'critical';
+    customTitle?: string;
+    customSubtitle?: string;
+    villageName?: string;
 }
 
-const StatusBanner: React.FC<StatusBannerProps> = ({ status = 'safe' }) => {
+const StatusBanner: React.FC<StatusBannerProps> = ({ status = 'safe', customTitle, customSubtitle, villageName }) => {
 
     const config = {
         safe: {
@@ -64,16 +67,16 @@ const StatusBanner: React.FC<StatusBannerProps> = ({ status = 'safe' }) => {
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white ${current.accent}`}>
-                                Current Status
+                                {villageName ? `Status: ${villageName}` : 'Global Status'}
                             </span>
                             <span className="text-xs font-bold text-gray-400 uppercase tracking-tighter">• Updated 2m ago</span>
                         </div>
                         <h2 className={`text-3xl md:text-5xl font-black tracking-tighter ${current.titleColor} leading-none mb-3`}>
-                            {current.title}
+                            {customTitle || current.title}
                         </h2>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                             <p className="text-lg md:text-xl font-bold text-gray-700">
-                                {current.subtitle} <span className="text-gray-400 font-medium">({current.margin})</span>
+                                {customSubtitle || current.subtitle} <span className="text-gray-400 font-medium">({current.margin})</span>
                             </p>
                             <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-gray-300"></span>
                             <p className="text-sm md:text-base text-gray-500 font-semibold tracking-tight">
