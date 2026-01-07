@@ -86,7 +86,7 @@ const WaterLevelForecast: React.FC<WaterLevelForecastProps> = ({ forecast, curre
                             }}
                             itemStyle={{ color: '#38bdf8', fontWeight: 'bold', fontSize: '12px' }}
                             labelStyle={{ color: '#94a3b8', fontSize: '10px', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}
-                            formatter={(value: number) => [`${value.toFixed(1)} Meters`, 'Water Level']}
+                            formatter={(value: number | undefined) => value !== undefined ? [`${value.toFixed(1)} Meters`, 'Water Level'] : ['N/A', 'Water Level']}
                         />
                         <Area
                             type="monotone"

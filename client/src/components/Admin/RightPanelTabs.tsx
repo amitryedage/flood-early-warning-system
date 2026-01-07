@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { Search, Filter, MoreHorizontal, MapPin, Navigation, TrendingUp, Activity, Terminal, Shield, Users } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, MapPin, Navigation, TrendingUp, Activity, Terminal, Shield, Users, Satellite, Cloud, Info, Zap } from 'lucide-react';
+import { useSatelliteData } from '../../hooks/useSatelliteData';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useSocket, type FloodData } from '../../hooks/useSocket';
 
 interface RightPanelTabsProps {
     floodData: FloodData | null;
-    activeTab?: 'villages' | 'teams' | 'predictions' | 'history';
-    onTabChange?: (tab: 'villages' | 'teams' | 'predictions' | 'history') => void;
+    activeTab?: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite';
+    onTabChange?: (tab: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite') => void;
 }
 
 const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: propsActiveTab, onTabChange }) => {
     const { socket } = useSocket();
-    const [internalActiveTab, setInternalActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history'>('villages');
+    const [internalActiveTab, setInternalActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history' | 'satellite'>('villages');
 
     const activeTab = propsActiveTab || internalActiveTab;
-    const setActiveTab = (tab: 'villages' | 'teams' | 'predictions' | 'history') => {
+    const setActiveTab = (tab: 'villages' | 'teams' | 'predictions' | 'history' | 'satellite') => {
         if (onTabChange) {
             onTabChange(tab);
         } else {
@@ -47,8 +48,15 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
         { id: 'villages', label: 'Zones', icon: Shield },
         { id: 'teams', label: 'Assets', icon: Navigation },
         { id: 'predictions', label: 'Intel', icon: Activity },
+        { id: 'satellite', label: 'Sat', icon: Satellite },
         { id: 'history', label: 'Logs', icon: Terminal },
     ] as const;
+
+    const { data: satData, loading: satLoading } = useSatelliteData({
+        lat: 16.8524,
+        lng: 74.5815,
+        enabled: activeTab === 'satellite'
+    });
 
     return (
         <div className="flex flex-col h-full bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
@@ -291,6 +299,114 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
                                 </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {/* SATELLITE TAB */}
+                {activeTab === 'satellite' && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Planetary Intel: Sentinel-2</span>
+                            <span className={`text-[10px] font-black uppercase ${satLoading ? 'text-indigo-600 animate-pulse' : 'text-indigo-600'}`}>
+                                {satLoading ? 'SCANNING ORBIT...' : 'SYNCED'}
+                            </span>
+                        </div>
+
+                        {satLoading ? (
+                            <div className="flex flex-col items-center justify-center py-20 space-y-4">
+                                <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Acquiring Multi-Spectral Data...</p>
+                            </div>
+                        ) : satData?.status === 'success' ? (
+                            <div className="space-y-5">
+                                {/* Visual Preview */}
+                                <div className="relative group rounded-2xl overflow-hidden border border-slate-200 shadow-lg bg-slate-900 aspect-video">
+                                    {satData.imagery?.visualUrl ? (
+                                        <img
+                                            src={satData.imagery.visualUrl}
+                                            alt="Satellite Visual"
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <Satellite className="w-12 h-12 text-slate-700 animate-bounce" />
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent flex flex-col justify-end p-4">
+                                        <div className="flex justify-between items-end">
+                                            <div>
+                                                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Last Pass</p>
+                                                <p className="text-sm font-black text-white uppercase tracking-tight">{satData.imagery?.date}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Cloud Cover</p>
+                                                <p className="text-sm font-black text-white uppercase tracking-tight">{satData.imagery?.cloudCover.toFixed(1)}%</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-4 left-4">
+                                        <span className="bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest shadow-lg">Cloud Optimized</span>
+                                    </div>
+                                </div>
+
+                                {/* NDWI Analysis Card */}
+                                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-3 opacity-5"><Zap className="w-20 h-20 text-indigo-600" /></div>
+                                    <h5 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <Activity className="w-3.5 h-3.5" /> NDWI Water Index
+                                    </h5>
+
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-white/60 p-3 rounded-xl border border-indigo-200/50">
+                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Spectral Bands</p>
+                                                <p className="text-xs font-black text-indigo-900">B03 (G) + B08 (NIR)</p>
+                                            </div>
+                                            <div className="bg-white/60 p-3 rounded-xl border border-indigo-200/50">
+                                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Spatial Res</p>
+                                                <p className="text-xs font-black text-indigo-900">10 Meters</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3 bg-white/80 rounded-xl border border-indigo-200">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Detection Signal</p>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse"></div>
+                                                <p className="text-[11px] font-bold text-slate-700 leading-tight">
+                                                    POSITIVE WATER CONCENTRATION DETECTED IN RIVERBED ALPHA
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Tech Specs */}
+                                <div className="grid grid-cols-1 gap-3">
+                                    <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                        <Info className="w-4 h-4 text-slate-400" />
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-800 uppercase tracking-tight">Source: Planetary Computer</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Provider: Microsoft / EU Copernicus</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                        <Cloud className="w-4 h-4 text-slate-400" />
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-800 uppercase tracking-tight">Status: Atmospheric Correction L2A</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bottom-of-Atmosphere Reflectance</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+                                <Satellite className="w-10 h-10 text-slate-300 mb-4" />
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center px-10 leading-relaxed">
+                                    {satData?.message || "No Cloud-Free Satellite Data Available for Current Observation Cycle"}
+                                </p>
+                                <button className="mt-4 text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline">Retry Orbital Link</button>
+                            </div>
+                        )}
                     </div>
                 )}
 

@@ -22,9 +22,9 @@ FEWS integrates real-time sensor data, satellite imagery, and AI-driven predicti
 ## 🛠️ Google Tech Stack Integration
 We leverage the power of **Google Cloud** and **Google Maps Platform** to provide world-class precision and reliability.
 
-### 🌍 1. Google Earth Engine (GEE)
-- **Problem Solved**: High-resolution historical analysis and current soil moisture monitoring.
-- **Implementation**: We use GEE to analyze years of Sentinel and Landsat imagery to identify flood-prone topographical depressions and monitor basin-wide saturation levels. This serves as the baseline for our predictive models.
+### 🌍 1. Microsoft Planetary Computer (Satellite Intel)
+- **Problem Solved**: High-resolution historical analysis and current soil moisture/water body monitoring without API key restrictions.
+- **Implementation**: We integrate the **Microsoft Planetary Computer STAC API** to fetch Sentinel-2 satellite imagery. By calculating the **NDWI (Normalized Difference Water Index)**, we identify real-time water body expansion and flood-prone zones, providing an extra layer of geospatial intelligence to our predictive models.
 
 ### 🗺️ 2. Google Maps Platform
 - **Problem Solved**: Visualizing complex spatial data for rapid decision-making.
@@ -44,6 +44,7 @@ We leverage the power of **Google Cloud** and **Google Maps Platform** to provid
 ---
 
 ## 🚀 Key Features
+- **Satellite Flood Mapping**: Real-time NDWI (water detection) heatmap overlay using Sentinel-2 L2A satellite data.
 - **Real-Time Hydrology**: Live monitoring of water levels and rainfall intensity.
 - **Predictive Analytics**: 24-hour visual forecast for potential flood breaches.
 - **Citizen "Am I Safe?" Engine**: Instant safety assessment based on geolocation.

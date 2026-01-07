@@ -15,6 +15,7 @@ const {
     updateResponderPosition
 } = require('./services/simulationService');
 const { fetchWeatherData } = require('./services/weatherService');
+const { getFloodRiskHeatmap, clearCache } = require('./services/satelliteService');
 const logger = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
 const dbService = require('./services/databaseService');
@@ -97,6 +98,60 @@ app.get('/api/weather', async (req, res) => {
             message: 'Failed to fetch weather data'
         });
     }
+});
+
+// API: Get satellite flood risk heatmap
+const SatelliteQuerySchema = z.object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    radius: z.number().min(0.01).max(1).optional(),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+});
+
+app.get('/api/satellite/flood-risk', async (req, res) => {
+    try {
+        const lat = parseFloat(req.query.lat);
+        const lng = parseFloat(req.query.lng);
+        const radius = req.query.radius ? parseFloat(req.query.radius) : undefined;
+        const date = req.query.date || undefined;
+
+        // Validate parameters
+        const validated = SatelliteQuerySchema.parse({ lat, lng, radius, date });
+
+        logger.info(`🛰️  Satellite data requested for ${validated.lat}, ${validated.lng}`);
+
+        const satelliteData = await getFloodRiskHeatmap(
+            validated.lat,
+            validated.lng,
+            validated.radius,
+            validated.date
+        );
+
+        res.json(satelliteData);
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Invalid parameters',
+                errors: error.errors
+            });
+        }
+        logger.error(`❌ Satellite API error: ${error.message}`);
+        res.status(500).json({
+            status: 'error',
+            message: 'Failed to fetch satellite data',
+            error: error.message
+        });
+    }
+});
+
+// API: Clear satellite cache (admin only)
+app.post('/api/satellite/clear-cache', authenticateToken, authorizeRole('admin'), (req, res) => {
+    clearCache();
+    res.json({
+        status: 'success',
+        message: 'Satellite cache cleared'
+    });
 });
 
 /**

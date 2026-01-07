@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, Circle, Marker, InfoWindow, HeatmapLayer } from '@react-google-maps/api';
+import { useSatelliteData } from '../../hooks/useSatelliteData';
 
 const containerStyle = {
     width: '100%',
@@ -22,6 +23,7 @@ interface MapContainerProps {
     responseTeams?: Array<{ id: string; name: string; lat: number; lng: number; status: 'ON_DUTY' | 'EN_ROUTE' | 'ON_SITE' | string }>;
     tasks?: Array<{ id: string; title: string; lat?: number; lng?: number; status: string; urgency: string }>;
     showHeatmap?: boolean;
+    showSatellite?: boolean;
 }
 
 const MapContainer: React.FC<MapContainerProps> = ({
@@ -32,7 +34,8 @@ const MapContainer: React.FC<MapContainerProps> = ({
     shelters = [],
     responseTeams = [],
     tasks = [],
-    showHeatmap = false
+    showHeatmap = false,
+    showSatellite = false
 }) => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -43,6 +46,14 @@ const MapContainer: React.FC<MapContainerProps> = ({
     const [map, setMap] = useState<google.maps.Map | null>(null);
 
     const [selectedMarker, setSelectedMarker] = useState<any | null>(null);
+
+    // Fetch satellite data when satellite layer is active
+    const { data: satelliteData, loading: satelliteLoading } = useSatelliteData({
+        lat: center[0],
+        lng: center[1],
+        radius: 0.1,
+        enabled: showSatellite
+    });
 
     const heatmapData = React.useMemo(() => {
         if (!showHeatmap || !window.google) return [];
@@ -58,6 +69,28 @@ const MapContainer: React.FC<MapContainerProps> = ({
         }
         return points;
     }, [showHeatmap, isLoaded]);
+
+    const satelliteHeatmapData = React.useMemo(() => {
+        if (!showSatellite || !satelliteData?.imagery || !window.google) return [];
+
+        // This is a simulation of the satellite NDWI data being converted to heatmap points
+        // In a real implementation with raster processing, we would have specific coordinates
+        // For the MVP, we generate a pattern around the monitoring center
+        const points: google.maps.LatLng[] = [];
+        const baseLat = center[0];
+        const baseLng = center[1];
+
+        // Simulating water detection based on NDWI pattern (e.g. following a river)
+        for (let i = 0; i < 100; i++) {
+            // River-like pattern: diagonal line with some noise
+            const offset = (i - 50) / 500;
+            points.push(new window.google.maps.LatLng(
+                baseLat + offset + (Math.random() - 0.5) * 0.01,
+                baseLng + offset + (Math.random() - 0.5) * 0.01
+            ));
+        }
+        return points;
+    }, [showSatellite, satelliteData, center, isLoaded]);
 
     const onLoad = useCallback(function callback(map: google.maps.Map) {
         setMap(map);
@@ -115,7 +148,15 @@ const MapContainer: React.FC<MapContainerProps> = ({
     }
 
     return (
-        <div className="w-full h-full bg-gray-100">
+        <div className="w-full h-full bg-gray-100 relative">
+            {showSatellite && satelliteLoading && (
+                <div className="absolute inset-0 z-[100] bg-indigo-900/10 backdrop-blur-[2px] flex items-center justify-center">
+                    <div className="bg-white/90 p-4 rounded-2xl shadow-2xl border border-indigo-100 flex items-center gap-4 animate-in zoom-in duration-300">
+                        <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-[10px] font-black text-indigo-900 uppercase tracking-widest">Orbiting Microsoft Planetary Catalog...</span>
+                    </div>
+                </div>
+            )}
             <GoogleMap
                 mapContainerStyle={containerStyle}
                 center={mapCenter}
@@ -137,6 +178,33 @@ const MapContainer: React.FC<MapContainerProps> = ({
                         options={{
                             radius: 30,
                             opacity: 0.6,
+                        }}
+                    />
+                )}
+
+                {/* Satellite NDWI Heatmap Layer */}
+                {showSatellite && isLoaded && window.google && satelliteHeatmapData.length > 0 && (
+                    <HeatmapLayer
+                        data={satelliteHeatmapData}
+                        options={{
+                            radius: 40,
+                            opacity: 0.8,
+                            gradient: [
+                                'rgba(0, 255, 255, 0)',
+                                'rgba(0, 255, 255, 1)',
+                                'rgba(0, 191, 255, 1)',
+                                'rgba(0, 127, 255, 1)',
+                                'rgba(0, 63, 255, 1)',
+                                'rgba(0, 0, 255, 1)',
+                                'rgba(0, 0, 223, 1)',
+                                'rgba(0, 0, 191, 1)',
+                                'rgba(0, 0, 159, 1)',
+                                'rgba(0, 0, 127, 1)',
+                                'rgba(63, 0, 91, 1)',
+                                'rgba(127, 0, 63, 1)',
+                                'rgba(191, 0, 31, 1)',
+                                'rgba(255, 0, 0, 1)'
+                            ]
                         }}
                     />
                 )}

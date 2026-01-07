@@ -23,7 +23,8 @@ const WarRoom: React.FC = () => {
         floodZones: true,
         shelters: true,
         teams: true,
-        rainfall: false
+        rainfall: false,
+        satellite: false
     });
 
     const toggleLayer = (layer: keyof MapLayers) => {
@@ -44,7 +45,7 @@ const WarRoom: React.FC = () => {
     };
 
     const data = floodData || defaultData;
-    const [activeTab, setActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history'>('villages');
+    const [activeTab, setActiveTab] = useState<'villages' | 'teams' | 'predictions' | 'history' | 'satellite'>('villages');
     const { addToast } = useToast();
 
     const handleBroadcast = () => {
@@ -59,7 +60,7 @@ const WarRoom: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-700">
+        <div className="flex flex-col h-full p-6 space-y-8 animate-in fade-in duration-700">
             {/* Weather Particles Effect */}
             {data.status === 'CRITICAL' && <WeatherParticles intensity="heavy" type="storm" />}
             {data.status === 'WARNING' && <WeatherParticles intensity="moderate" type="rain" />}
@@ -162,6 +163,7 @@ const WarRoom: React.FC = () => {
                             })) || []) : []}
                             tasks={floodData?.tasks || []}
                             showHeatmap={activeLayers.rainfall}
+                            showSatellite={activeLayers.satellite}
                         />
 
                         {/* Layer Controls */}

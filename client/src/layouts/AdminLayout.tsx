@@ -15,7 +15,7 @@ const AdminLayout: React.FC = () => {
             {/* 3. Main Content Area */}
             {/* Height is full screen, but we manage scroll internally using overflow-y-auto */}
             <main className="h-full pt-[70px] pl-[280px] overflow-y-auto transition-all duration-300">
-                <div className="p-6 min-h-full flex flex-col">
+                <div className="p-0 min-h-full flex flex-col">
                     {/* The War Room dashboard or other admin pages render here */}
                     <Outlet />
                 </div>
