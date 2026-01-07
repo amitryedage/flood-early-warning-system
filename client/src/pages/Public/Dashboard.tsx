@@ -15,6 +15,7 @@ import FloodHouseVisual from '../../components/Public/FloodHouseVisual';
 import WeatherParticles from '../../components/Effects/WeatherParticles';
 import { AlertOctagon, Map as MapIcon, X } from 'lucide-react';
 import RescueStatus from '../../components/Public/RescueStatus';
+import SafeRouteAI from '../../components/Public/SafeRouteAI';
 import { useSocket } from '../../hooks/useSocket';
 import { useToast } from '../../context/ToastContext';
 
@@ -29,6 +30,7 @@ const PublicDashboard: React.FC = () => {
     const [showPublicMap, setShowPublicMap] = useState(false);
     const [showAlertForm, setShowAlertForm] = useState(false);
     const [isSosActive, setIsSosActive] = useState(false);
+    const [isSafeRouteActive, setIsSafeRouteActive] = useState(false);
     const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
     const [selectedVillage, setSelectedVillage] = useState<any | null>(null);
 
@@ -182,7 +184,10 @@ const PublicDashboard: React.FC = () => {
 
                     <QuickActionsGrid onAction={(action) => {
                         if (action === 'ALERTS') setShowAlertForm(true);
-                        if (action === 'SHELTERS') setShowPublicMap(true); // Map shows shelters
+                        if (action === 'SHELTERS') {
+                            setShowPublicMap(true); // Map shows shelters
+                            setIsSafeRouteActive(true); // Trigger Masterstroke: SafeRoute AI
+                        }
                         if (action === 'SOS') {
                             setIsSosActive(true);
                             if ("geolocation" in navigator) {
@@ -315,15 +320,16 @@ const PublicDashboard: React.FC = () => {
                                 <PublicMap
                                     isLoaded={isLoaded}
                                     userLocation={userLoc}
+                                    isSafeRouteActive={isSafeRouteActive}
                                     floodZones={floodData ? [{
-                                        lat: 18.0,
-                                        lng: 82.0,
-                                        radius: 50000 * (floodData.waterLevel / 12),
+                                        lat: userLoc?.lat || 18.0,
+                                        lng: userLoc?.lng || 82.0,
+                                        radius: 500 * (floodData.waterLevel / 12),
                                         severity: floodData.status === 'CRITICAL' ? 'HIGH' : 'MODERATE'
                                     }] : []}
                                     shelters={[
-                                        { id: 's1', name: 'Community Center', lat: 18.05, lng: 82.05, capacity: 500 },
-                                        { id: 's2', name: 'High School', lat: 17.85, lng: 81.85, capacity: 1000 }
+                                        { id: 's1', name: 'St. Mary School', lat: (userLoc?.lat || 18.0) + 0.005, lng: (userLoc?.lng || 82.0) + 0.005, capacity: 500 },
+                                        { id: 's2', name: 'Hilltop Plaza', lat: (userLoc?.lat || 18.0) - 0.005, lng: (userLoc?.lng || 82.0) - 0.005, capacity: 1000 }
                                     ]}
                                 />
                             </div>
@@ -346,6 +352,14 @@ const PublicDashboard: React.FC = () => {
             }
             {/* Live Rescue Mission Simulation Overlay */}
             {isSosActive && <RescueStatus onClose={() => setIsSosActive(false)} />}
+
+            {/* SafeRoute AI Tactical Guidance Overlay */}
+            {isSafeRouteActive && showPublicMap && (
+                <SafeRouteAI
+                    onClose={() => setIsSafeRouteActive(false)}
+                    activeVillage={selectedVillage?.name}
+                />
+            )}
         </div>
     );
 };
