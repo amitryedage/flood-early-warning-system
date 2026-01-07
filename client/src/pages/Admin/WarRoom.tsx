@@ -41,7 +41,8 @@ const WarRoom: React.FC = () => {
         responders: [],
         tasks: [],
         forecast: [],
-        history: []
+        history: [],
+        satelliteIntelligence: { status: 'pending', lastUpdated: null, message: null, cloudCover: null, visualUrl: null, sensorType: 'Sentinel-2' }
     };
 
     const data = floodData || defaultData;
@@ -74,6 +75,8 @@ const WarRoom: React.FC = () => {
                         waterLevel={data.waterLevel}
                         onBroadcast={handleBroadcast}
                         onViewIntel={handleViewIntel}
+                        satelliteStatus={data.satelliteIntelligence?.status}
+                        sensorType={data.satelliteIntelligence?.sensorType}
                     />
                 </div>
             </div>

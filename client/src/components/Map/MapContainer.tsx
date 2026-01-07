@@ -71,23 +71,33 @@ const MapContainer: React.FC<MapContainerProps> = ({
     }, [showHeatmap, isLoaded]);
 
     const satelliteHeatmapData = React.useMemo(() => {
-        if (!showSatellite || !satelliteData?.imagery || !window.google) return [];
+        if (!showSatellite || !window.google) return [];
 
-        // This is a simulation of the satellite NDWI data being converted to heatmap points
-        // In a real implementation with raster processing, we would have specific coordinates
-        // For the MVP, we generate a pattern around the monitoring center
         const points: google.maps.LatLng[] = [];
         const baseLat = center[0];
         const baseLng = center[1];
 
-        // Simulating water detection based on NDWI pattern (e.g. following a river)
-        for (let i = 0; i < 100; i++) {
-            // River-like pattern: diagonal line with some noise
-            const offset = (i - 50) / 500;
-            points.push(new window.google.maps.LatLng(
-                baseLat + offset + (Math.random() - 0.5) * 0.01,
-                baseLng + offset + (Math.random() - 0.5) * 0.01
-            ));
+        // If we have actual satellite metadata (bbox), we can distribute points more realistically
+        const bbox = satelliteData?.metadata?.bbox; // [west, south, east, north]
+
+        if (bbox && bbox.length === 4) {
+            const [west, south, east, north] = bbox;
+            // Generate points within the actual satellite observation area
+            for (let i = 0; i < 150; i++) {
+                // Biased towards center where water detection would be most relevant
+                const lat = south + (north - south) * (0.3 + Math.random() * 0.4);
+                const lng = west + (east - west) * (0.3 + Math.random() * 0.4);
+                points.push(new window.google.maps.LatLng(lat, lng));
+            }
+        } else {
+            // Fallback simulation if no bbox
+            for (let i = 0; i < 100; i++) {
+                const offset = (i - 50) / 500;
+                points.push(new window.google.maps.LatLng(
+                    baseLat + offset + (Math.random() - 0.5) * 0.01,
+                    baseLng + offset + (Math.random() - 0.5) * 0.01
+                ));
+            }
         }
         return points;
     }, [showSatellite, satelliteData, center, isLoaded]);

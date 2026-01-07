@@ -109,6 +109,11 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
                                             }`}>
                                             {village.riskLevel}% LIKELIHOOD
                                         </span>
+                                        {village.satelliteVerified && (
+                                            <div className="absolute top-2 right-2 flex items-center gap-1.5 px-2 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded shadow-lg animate-in zoom-in">
+                                                <Satellite className="w-2.5 h-2.5" /> VERIFIED
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
                                         <span className="flex items-center gap-1.5"><Users className="w-3 h-3" /> {village.population.toLocaleString()} EXPOSED</span>
@@ -306,7 +311,7 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
                 {activeTab === 'satellite' && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Planetary Intel: Sentinel-2</span>
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Planetary Intel: {(satData?.imagery as any)?.sensorType || 'Sentinel-2'}</span>
                             <span className={`text-[10px] font-black uppercase ${satLoading ? 'text-indigo-600 animate-pulse' : 'text-indigo-600'}`}>
                                 {satLoading ? 'SCANNING ORBIT...' : 'SYNCED'}
                             </span>
@@ -344,8 +349,13 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="absolute top-4 left-4">
+                                    <div className="absolute top-4 left-4 flex gap-2">
                                         <span className="bg-emerald-500 text-white text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest shadow-lg">Cloud Optimized</span>
+                                        {(satData.imagery as any)?.sensorType === 'Sentinel-1 (Radar)' && (
+                                            <span className="bg-indigo-600 text-white text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest shadow-lg flex items-center gap-1">
+                                                <Activity className="w-2 h-2" /> All-Weather SAR
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -353,14 +363,14 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
                                 <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 p-3 opacity-5"><Zap className="w-20 h-20 text-indigo-600" /></div>
                                     <h5 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                        <Activity className="w-3.5 h-3.5" /> NDWI Water Index
+                                        <Activity className="w-3.5 h-3.5" /> {(satData.imagery as any)?.sensorType === 'Sentinel-1 (Radar)' ? 'Radar Backscatter Analysis' : 'NDWI Water Index'}
                                     </h5>
 
                                     <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="bg-white/60 p-3 rounded-xl border border-indigo-200/50">
                                                 <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Spectral Bands</p>
-                                                <p className="text-xs font-black text-indigo-900">B03 (G) + B08 (NIR)</p>
+                                                <p className="text-xs font-black text-indigo-900">{(satData.imagery as any)?.sensorType === 'Sentinel-1 (Radar)' ? 'VV + VH Polarizations' : 'B03 (G) + B08 (NIR)'}</p>
                                             </div>
                                             <div className="bg-white/60 p-3 rounded-xl border border-indigo-200/50">
                                                 <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-1">Spatial Res</p>
@@ -373,7 +383,9 @@ const RightPanelTabs: React.FC<RightPanelTabsProps> = ({ floodData, activeTab: p
                                             <div className="flex items-center gap-2">
                                                 <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] animate-pulse"></div>
                                                 <p className="text-[11px] font-bold text-slate-700 leading-tight">
-                                                    POSITIVE WATER CONCENTRATION DETECTED IN RIVERBED ALPHA
+                                                    {(satData.imagery as any)?.sensorType === 'Sentinel-1 (Radar)'
+                                                        ? 'SAR ANOMALY: MICROWAVE BACKSCATTER CONFIRMS STANDING WATER'
+                                                        : 'POSITIVE WATER CONCENTRATION DETECTED IN RIVERBED ALPHA'}
                                                 </p>
                                             </div>
                                         </div>

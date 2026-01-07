@@ -12,7 +12,8 @@ const {
     forceUpdate,
     dispatchTask,
     updateTaskStatus,
-    updateResponderPosition
+    updateResponderPosition,
+    updateSatelliteIntelligence
 } = require('./services/simulationService');
 const { fetchWeatherData } = require('./services/weatherService');
 const { getFloodRiskHeatmap, clearCache } = require('./services/satelliteService');
@@ -222,6 +223,22 @@ io.on('connection', (socket) => {
 
 // Start Simulation Background Service
 startSimulation(io);
+
+// Background Satellite Intelligence Sync (Every 10 minutes)
+const syncSatelliteIntelligence = async () => {
+    try {
+        const data = await getFloodRiskHeatmap(16.8524, 74.5815);
+        updateSatelliteIntelligence(data);
+        io.emit('flood-update', getCurrentState());
+        logger.info('🛰️  Geospatial intelligence loop synced');
+    } catch (error) {
+        logger.error(`❌ Satellite sync failed: ${error.message}`);
+    }
+};
+
+// Initial sync and then interval
+syncSatelliteIntelligence();
+setInterval(syncSatelliteIntelligence, 600000); // 10 minutes
 
 // Global Error Handler (Must be last)
 app.use(errorHandler);

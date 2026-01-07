@@ -67,7 +67,7 @@ const signPlanetaryComputerUrl = (url) => {
  * @param {string} dateEnd - End date in ISO format (YYYY-MM-DD)
  * @returns {Promise<Object>} STAC search results
  */
-const searchSatelliteImagery = (bbox, dateStart, dateEnd) => {
+const searchSatelliteImagery = (bbox, dateStart, dateEnd, cloudLimit = MAX_CLOUD_COVER) => {
     return new Promise((resolve, reject) => {
         const searchPayload = JSON.stringify({
             collections: ['sentinel-2-l2a'],
@@ -75,13 +75,14 @@ const searchSatelliteImagery = (bbox, dateStart, dateEnd) => {
             datetime: `${dateStart}T00:00:00Z/${dateEnd}T23:59:59Z`,
             limit: 5,
             query: {
-                'eo:cloud_cover': { lt: MAX_CLOUD_COVER }
+                'eo:cloud_cover': { lt: cloudLimit }
             },
             sortby: [
                 { field: 'properties.eo:cloud_cover', direction: 'asc' },
                 { field: 'properties.datetime', direction: 'desc' }
             ]
         });
+        // ... (rest of searchSatelliteImagery stays same, but with cloudLimit variable)
 
         const options = {
             hostname: 'planetarycomputer.microsoft.com',
@@ -123,6 +124,63 @@ const searchSatelliteImagery = (bbox, dateStart, dateEnd) => {
             reject(error);
         });
 
+        req.write(searchPayload);
+        req.end();
+    });
+};
+
+/**
+ * Search for Sentinel-1 Radar imagery (SAR) using Microsoft Planetary Computer STAC API
+ * Used as a failover when clouds obscure optical imagery.
+ * @param {Array} bbox - Bounding box [west, south, east, north]
+ * @param {string} dateStart - Start date
+ * @param {string} dateEnd - End date
+ * @returns {Promise<Object>} STAC search results
+ */
+const searchRadarImagery = (bbox, dateStart, dateEnd) => {
+    return new Promise((resolve, reject) => {
+        // Sentinel-1 GRD (Ground Range Detected) is suitable for water detection
+        const searchPayload = JSON.stringify({
+            collections: ['sentinel-1-grd'],
+            bbox: bbox,
+            datetime: `${dateStart}T00:00:00Z/${dateEnd}T23:59:59Z`,
+            limit: 3,
+            query: {
+                'sar:instrument_mode': { eq: 'IW' }, // Interferometric Wide swath
+                'sar:product_type': { eq: 'GRD' }
+            },
+            sortby: [
+                { field: 'properties.datetime', direction: 'desc' }
+            ]
+        });
+
+        const options = {
+            hostname: 'planetarycomputer.microsoft.com',
+            path: '/api/stac/v1/search',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(searchPayload)
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (res.statusCode === 200) {
+                        logger.info(`📡 Found ${parsed.features?.length || 0} Radar (SAR) scan(s)`);
+                        resolve(parsed);
+                    } else {
+                        reject(new Error(`Radar API returned ${res.statusCode}`));
+                    }
+                } catch (error) { reject(error); }
+            });
+        });
+
+        req.on('error', (error) => reject(error));
         req.write(searchPayload);
         req.end();
     });
@@ -224,32 +282,76 @@ const getFloodRiskHeatmap = async (lat, lng, radius = DEFAULT_RADIUS, date = nul
         const dateEnd = new Date(targetDate);
         dateEnd.setDate(dateEnd.getDate() + 7);
 
-        const searchResults = await searchSatelliteImagery(
+        // 1. Try Sentinel-2 (Optical) first
+        let searchResults = await searchSatelliteImagery(
             bbox,
             dateStart.toISOString().split('T')[0],
-            dateEnd.toISOString().split('T')[0]
+            dateEnd.toISOString().split('T')[0],
+            70 // Allow up to 70% clouds for initial search as failover
         );
 
-        if (!searchResults.features || searchResults.features.length === 0) {
-            logger.warn('⚠️  No satellite imagery found for this location/date');
+        let bestImage = null;
+        let isRadar = false;
+
+        if (searchResults.features && searchResults.features.length > 0) {
+            // Check if even the best image is too cloudy
+            const firstResult = searchResults.features[0];
+            const cloudCover = firstResult.properties['eo:cloud_cover'];
+
+            if (cloudCover <= MAX_CLOUD_COVER) {
+                bestImage = firstResult;
+            } else {
+                logger.info(`☁️ Optical imagery too cloudy (${cloudCover.toFixed(1)}%). Failing over to Radar...`);
+            }
+        }
+
+        // 2. Failover to Sentinel-1 (Radar) if optical is unavailable or too cloudy
+        if (!bestImage) {
+            const radarResults = await searchRadarImagery(
+                bbox,
+                dateStart.toISOString().split('T')[0],
+                dateEnd.toISOString().split('T')[0]
+            );
+
+            if (radarResults.features && radarResults.features.length > 0) {
+                bestImage = radarResults.features[0];
+                isRadar = true;
+                logger.info('🛰️ Using Sentinel-1 Radar imagery (All-weather mode)');
+            }
+        }
+
+        if (!bestImage) {
+            logger.warn('⚠️ No satellite imagery (Optical or Radar) found for this location/date');
             return {
                 status: 'no_data',
-                message: 'No clear satellite imagery available for this location and date range',
+                message: 'No satellite imagery (Optical or Radar) available for this location and date range',
                 searchParams: { lat, lng, date: targetDate, radius }
             };
         }
 
-        // Get the best image (lowest cloud cover, most recent)
-        const bestImage = searchResults.features[0];
         const imageDate = new Date(bestImage.properties.datetime);
-        const cloudCover = bestImage.properties['eo:cloud_cover'];
+        const cloudCover = isRadar ? 0 : bestImage.properties['eo:cloud_cover'];
 
-        logger.info(`📸 Selected image from ${imageDate.toISOString()} with ${cloudCover.toFixed(1)}% cloud cover`);
+        // Calculate metadata (NDWI for optical, Amplitude-based for radar)
+        let processedData;
+        if (isRadar) {
+            // Simplified Radar metadata
+            const visualUrlUnsigned = bestImage.assets?.rendered_preview?.href || bestImage.assets?.thumbnail?.href || null;
+            const visualUrl = await signPlanetaryComputerUrl(visualUrlUnsigned);
+            processedData = {
+                visualUrl,
+                interpretation: {
+                    high: 'Low backscatter (dark areas) indicates standing water',
+                    mode: 'Radar (Synthetic Aperture Radar)'
+                },
+                sensorType: 'Sentinel-1 (Radar)'
+            };
+        } else {
+            processedData = await calculateNDWI(bestImage);
+            processedData.sensorType = 'Sentinel-2 (Optical)';
+        }
 
-        // Calculate NDWI metadata
-        const ndwiData = await calculateNDWI(bestImage);
-
-        if (!ndwiData) {
+        if (!processedData) {
             return {
                 status: 'error',
                 message: 'Unable to process satellite imagery',
@@ -264,16 +366,20 @@ const getFloodRiskHeatmap = async (lat, lng, radius = DEFAULT_RADIUS, date = nul
                 date: imageDate.toISOString().split('T')[0],
                 datetime: imageDate.toISOString(),
                 cloudCover: cloudCover,
-                visualUrl: ndwiData.visualUrl,
-                bands: ndwiData.bands
+                visualUrl: processedData.visualUrl,
+                bands: processedData.bands || null,
+                sensorType: processedData.sensorType
             },
-            ndwi: {
-                formula: ndwiData.formula,
-                interpretation: ndwiData.interpretation,
+            ndwi: !isRadar ? {
+                formula: processedData.formula,
+                interpretation: processedData.interpretation,
                 bandsAvailable: true
-            },
+            } : null,
+            radar: isRadar ? {
+                interpretation: processedData.interpretation
+            } : null,
             metadata: {
-                source: 'Sentinel-2 L2A (Microsoft Planetary Computer)',
+                source: isRadar ? 'Sentinel-1 GRD (Microsoft Planetary Computer)' : 'Sentinel-2 L2A (Microsoft Planetary Computer)',
                 resolution: '10m',
                 bbox: bbox,
                 cached: false,

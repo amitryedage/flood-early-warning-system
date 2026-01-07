@@ -56,7 +56,15 @@ let currentState = {
     // 24h Forecast (hourly)
     forecast: [],
     // Recent History (last 50 points)
-    history: []
+    history: [],
+    // Satellite Intelligence (NDWI)
+    satelliteIntelligence: {
+        status: 'pending',
+        lastUpdated: null,
+        message: null,
+        cloudCover: null,
+        visualUrl: null
+    }
 };
 
 // Zod Schema for input validation (if we allowed external updates)
@@ -134,17 +142,33 @@ const startSimulation = (io) => {
         currentState.status = determineRiskStatus(currentState.waterLevel);
 
         // 2b. Update Village Statuses dynamically
+        const satIntel = currentState.satelliteIntelligence;
         currentState.villages = currentState.villages.map(v => {
             // Simple risk model: Risk increases with water level
-            // Base water level is ~12m. Every 0.1m above 12 adds risk.
-            const waterFactor = Math.max(0, (currentState.waterLevel - 10) * 10); // e.g. 12m -> 20pts
-            const dynamicRisk = Math.min(100, v.baseRisk + waterFactor);
+            const waterFactor = Math.max(0, (currentState.waterLevel - 10) * 10);
+            let dynamicRisk = Math.min(100, v.baseRisk + waterFactor);
+
+            // SATELLITE OVERRIDE: If satellite confirms water expansion at this coordinate
+            // (Simulated logic: if satellite status is success and it's a high-water event)
+            let satelliteVerified = false;
+            if (satIntel.status === 'success' && currentState.waterLevel > 14.0) {
+                // If it's a high-water event, satellite "identifies" risk at low-lying villages
+                if (v.baseRisk > 30) {
+                    dynamicRisk = Math.max(dynamicRisk, 95); // Force high risk
+                    satelliteVerified = true;
+                }
+            }
 
             let status = 'SAFE';
             if (dynamicRisk > 80) status = 'CRITICAL';
             else if (dynamicRisk > 50) status = 'WARNING';
 
-            return { ...v, riskLevel: Math.round(dynamicRisk), status };
+            return {
+                ...v,
+                riskLevel: Math.round(dynamicRisk),
+                status,
+                satelliteVerified
+            };
         });
 
         currentState.timestamp = Date.now();
@@ -295,6 +319,18 @@ const determineRiskStatus = (level) => {
     return 'NORMAL';
 };
 
+const updateSatelliteIntelligence = (data) => {
+    currentState.satelliteIntelligence = {
+        status: data.status,
+        lastUpdated: data.imagery?.datetime || Date.now(),
+        message: data.message || 'Satellite sync successful',
+        cloudCover: data.imagery?.cloudCover,
+        visualUrl: data.imagery?.visualUrl,
+        sensorType: data.imagery?.sensorType || 'Sentinel-2'
+    };
+    return currentState.satelliteIntelligence;
+};
+
 module.exports = {
     startSimulation,
     getCurrentState,
@@ -302,6 +338,7 @@ module.exports = {
     dispatchTask,
     updateTaskStatus,
     updateResponderPosition,
+    updateSatelliteIntelligence,
     calculateNewWaterLevel, // Exported for tests
     determineRiskStatus     // Exported for tests
 };

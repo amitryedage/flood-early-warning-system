@@ -9,7 +9,8 @@ export interface SatelliteData {
         datetime: string;
         cloudCover: number;
         visualUrl: string | null;
-        bands: {
+        sensorType?: string;
+        bands?: {
             B03: string;
             B08: string;
         };
@@ -22,6 +23,12 @@ export interface SatelliteData {
             low: string;
         };
         bandsAvailable: boolean;
+    };
+    radar?: {
+        interpretation: {
+            high: string;
+            mode: string;
+        };
     };
     metadata?: {
         source: string;

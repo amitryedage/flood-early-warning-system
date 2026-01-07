@@ -1,14 +1,16 @@
 import React from 'react';
-import { AlertTriangle, TrendingUp, X } from 'lucide-react';
+import { AlertTriangle, TrendingUp, X, Satellite } from 'lucide-react';
 
 interface CriticalAlertBannerProps {
     status: 'NORMAL' | 'WARNING' | 'CRITICAL';
     waterLevel: number;
     onBroadcast?: () => void;
     onViewIntel?: () => void;
+    satelliteStatus?: string;
+    sensorType?: string;
 }
 
-const CriticalAlertBanner: React.FC<CriticalAlertBannerProps> = ({ status, waterLevel, onBroadcast, onViewIntel }) => {
+const CriticalAlertBanner: React.FC<CriticalAlertBannerProps> = ({ status, waterLevel, onBroadcast, onViewIntel, satelliteStatus, sensorType }) => {
     if (status === 'NORMAL') return null;
 
     const isCritical = status === 'CRITICAL';
@@ -27,6 +29,11 @@ const CriticalAlertBanner: React.FC<CriticalAlertBannerProps> = ({ status, water
                         <div className="flex items-center gap-4 mb-2">
                             <h2 className="text-2xl font-black italic tracking-tighter uppercase">{isCritical ? 'Critical Anomaly Detected' : 'Operational Warning'}</h2>
                             <span className="px-3 py-1 bg-[#020617] text-[10px] font-black rounded-lg border border-slate-800 uppercase tracking-[0.2em] text-cyan-500">Sector Delta-4</span>
+                            {satelliteStatus === 'success' && (
+                                <span className={`px-3 py-1 ${sensorType?.includes('Radar') ? 'bg-indigo-950 border-indigo-400' : 'bg-indigo-950/60 border-indigo-500/50'} text-[10px] font-black rounded-lg border uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-2`}>
+                                    <Satellite className="w-3 h-3" /> {sensorType?.includes('Radar') ? 'Radar Verified (All-Weather)' : 'Satellite Verified'}
+                                </span>
+                            )}
                         </div>
                         <p className="text-slate-300 text-sm font-semibold leading-relaxed max-w-2xl uppercase tracking-tight">
                             Telemetry alert: Water level at <span className={`font-black ${isCritical ? 'text-red-500' : 'text-orange-500'}`}>{waterLevel.toFixed(1)}m</span>.
