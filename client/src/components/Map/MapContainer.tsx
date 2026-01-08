@@ -25,6 +25,8 @@ interface MapContainerProps {
     showHeatmap?: boolean;
     showSatellite?: boolean;
     showAIRoute?: boolean;
+    showCommunityAssets?: boolean;
+    communityAssets?: Array<{ id: string; name: string; type: string; lat: number; lng: number; phone: string }>;
 }
 
 const MapContainer: React.FC<MapContainerProps> = ({
@@ -37,7 +39,9 @@ const MapContainer: React.FC<MapContainerProps> = ({
     tasks = [],
     showHeatmap = false,
     showSatellite = false,
-    showAIRoute = false
+    showAIRoute = false,
+    showCommunityAssets = false,
+    communityAssets = []
 }) => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
@@ -141,6 +145,10 @@ const MapContainer: React.FC<MapContainerProps> = ({
                     bounds.extend({ lat: task.lat, lng: task.lng });
                     hasPoints = true;
                 }
+            });
+            communityAssets.forEach(asset => {
+                bounds.extend({ lat: asset.lat, lng: asset.lng });
+                hasPoints = true;
             });
 
             if (hasPoints) {
@@ -356,6 +364,27 @@ const MapContainer: React.FC<MapContainerProps> = ({
                             fillOpacity: 1,
                             strokeWeight: 2,
                             strokeColor: '#ffffff',
+                            scale: 1.2,
+                            anchor: new google.maps.Point(12, 12),
+                        }}
+                    />
+                ))}
+
+                {/* Community Assets -> Heart Icon */}
+                {showCommunityAssets && communityAssets.map((asset) => (
+                    <Marker
+                        key={asset.id}
+                        position={{ lat: asset.lat, lng: asset.lng }}
+                        onClick={() => setSelectedMarker({
+                            ...asset,
+                            details: `Resource: ${asset.type} | Contact: ${asset.phone}`
+                        })}
+                        icon={{
+                            path: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z", // Heart Icon
+                            fillColor: "#ef4444",
+                            fillOpacity: 1,
+                            strokeWeight: 2,
+                            strokeColor: "#ffffff",
                             scale: 1.2,
                             anchor: new google.maps.Point(12, 12),
                         }}

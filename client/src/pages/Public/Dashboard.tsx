@@ -16,6 +16,7 @@ import WeatherParticles from '../../components/Effects/WeatherParticles';
 import { AlertOctagon, Map as MapIcon, X } from 'lucide-react';
 import RescueStatus from '../../components/Public/RescueStatus';
 import SafeRouteAI from '../../components/Public/SafeRouteAI';
+import CommunityHelpForm from '../../components/Public/CommunityHelpForm';
 import { useSocket } from '../../hooks/useSocket';
 import { useToast } from '../../context/ToastContext';
 
@@ -31,6 +32,7 @@ const PublicDashboard: React.FC = () => {
     const [showAlertForm, setShowAlertForm] = useState(false);
     const [isSosActive, setIsSosActive] = useState(false);
     const [isSafeRouteActive, setIsSafeRouteActive] = useState(false);
+    const [showCommunityForm, setShowCommunityForm] = useState(false);
     const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
     const [selectedVillage, setSelectedVillage] = useState<any | null>(null);
 
@@ -184,6 +186,7 @@ const PublicDashboard: React.FC = () => {
 
                     <QuickActionsGrid onAction={(action) => {
                         if (action === 'ALERTS') setShowAlertForm(true);
+                        if (action === 'HELP') setShowCommunityForm(true);
                         if (action === 'SHELTERS') {
                             setShowPublicMap(true); // Map shows shelters
                             setIsSafeRouteActive(true); // Trigger Masterstroke: SafeRoute AI
@@ -350,6 +353,27 @@ const PublicDashboard: React.FC = () => {
                     </div>
                 )
             }
+            {/* Community Help Overlay */}
+            {
+                showCommunityForm && (
+                    <div className="fixed inset-0 z-[600] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCommunityForm(false)}></div>
+                        <div className="relative bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                            <div className="p-8">
+                                <CommunityHelpForm
+                                    onClose={() => setShowCommunityForm(false)}
+                                    onSubmit={(_data) => {
+                                        addToast('success', 'Thank you! Your community asset is now live in the War Room.', 5000);
+                                        setShowCommunityForm(false);
+                                        // Mock emission to socket
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
             {/* Live Rescue Mission Simulation Overlay */}
             {isSosActive && <RescueStatus onClose={() => setIsSosActive(false)} />}
 

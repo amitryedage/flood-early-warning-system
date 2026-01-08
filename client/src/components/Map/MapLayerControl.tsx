@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layers, CloudRain, Shield, AlertTriangle, Users, Satellite, Navigation } from 'lucide-react';
+import { Layers, CloudRain, Shield, AlertTriangle, Users, Satellite, Navigation, Heart } from 'lucide-react';
 
 export interface MapLayers {
     floodZones: boolean;
@@ -8,6 +8,7 @@ export interface MapLayers {
     rainfall: boolean;
     satellite: boolean;
     aiRoute: boolean;
+    communityAssets: boolean;
 }
 
 interface MapLayerControlProps {
@@ -92,6 +93,16 @@ const MapLayerControl: React.FC<MapLayerControlProps> = ({ layers, onToggle }) =
                             <Navigation className="w-3.5 h-3.5" /> AI Route
                         </span>
                         <div className={`w-2 h-2 rounded-full ${layers.aiRoute ? 'bg-sky-600' : 'bg-slate-300'}`} />
+                    </button>
+
+                    <button
+                        onClick={() => onToggle('communityAssets')}
+                        className={`w-full flex items-center justify-between p-2 rounded-lg text-xs font-bold transition-all ${layers.communityAssets ? 'bg-red-50 text-red-600' : 'text-slate-500 hover:bg-slate-100'}`}
+                    >
+                        <span className="flex items-center gap-2">
+                            <Heart className="w-3.5 h-3.5" /> Volunteers
+                        </span>
+                        <div className={`w-2 h-2 rounded-full ${layers.communityAssets ? 'bg-red-600' : 'bg-slate-300'}`} />
                     </button>
                 </div>
             </div>

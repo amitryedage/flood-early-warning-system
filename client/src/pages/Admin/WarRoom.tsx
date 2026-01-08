@@ -26,7 +26,8 @@ const WarRoom: React.FC = () => {
         teams: true,
         rainfall: false,
         satellite: false,
-        aiRoute: false
+        aiRoute: false,
+        communityAssets: true
     });
 
     const toggleLayer = (layer: keyof MapLayers) => {
@@ -170,6 +171,13 @@ const WarRoom: React.FC = () => {
                             showHeatmap={activeLayers.rainfall}
                             showSatellite={activeLayers.satellite}
                             showAIRoute={activeLayers.aiRoute}
+                            showCommunityAssets={activeLayers.communityAssets}
+                            communityAssets={[
+                                { id: 'ca1', name: 'Rajesh Pate', type: 'FISHING BOAT', lat: 16.8580, lng: 74.5850, phone: '+91 98230 XXXXX' },
+                                { id: 'ca2', name: 'Amit Shinde', type: '4X4 TRUCK', lat: 16.8420, lng: 74.5920, phone: '+91 99210 XXXXX' },
+                                { id: 'ca3', name: 'Community Kitchen', type: 'FOOD/WATER', lat: 16.8500, lng: 74.5750, phone: '+91 88880 XXXXX' },
+                                { id: 'ca4', name: 'Dr. Deshmukh', type: 'MEDICAL/BEDS', lat: 16.8650, lng: 74.6050, phone: '+91 77770 XXXXX' },
+                            ]}
                         />
 
                         {/* Layer Controls */}
