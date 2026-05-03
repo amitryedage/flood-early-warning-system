@@ -97,5 +97,3 @@ We leverage the power of **Google Cloud** and **Google Maps Platform** to provid
 
 ---
 
-## 📞 Support & Community
-Join our mission to build more resilient communities. For technical issues, please open a GitHub Issue.
