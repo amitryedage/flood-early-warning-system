@@ -86,14 +86,5 @@ We leverage the power of **Google Cloud** and **Google Maps Platform** to provid
 
 3. **Configure Environment Variables**
    Create `.env` files in both `/client` and `/server` directories following the `.env.example` templates.
-
-4. **Run the Application**
-   ```bash
-   # Run Backend (from /server)
-   npm start
-   # Run Frontend (from /client)
-   npm run dev
-   ```
-
 ---
 
