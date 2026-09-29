@@ -67,24 +67,6 @@ We leverage the power of **Google Cloud** and **Google Maps Platform** to provid
 - Google Cloud Project with Billing Enabled
 - API Keys for Google Maps and Geocoding
 
-### Setup
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-repo/flood-early-warning-system.git
-   cd flood-early-warning-system
-   ```
 
-2. **Install Dependencies**
-   ```bash
-   # Root
-   npm install
-   # Client
-   cd client && npm install
-   # Server
-   cd ../server && npm install
-   ```
-
-3. **Configure Environment Variables**
-   Create `.env` files in both `/client` and `/server` directories following the `.env.example` templates.
 ---
 
