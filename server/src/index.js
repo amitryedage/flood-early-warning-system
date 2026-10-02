@@ -49,12 +49,12 @@ app.get('/', (req, res) => {
     res.send('Flood Early Warning System API is running');
 });
 
-// API: Get current status
+
 app.get('/api/status', (req, res) => {
     res.json(getCurrentState());
 });
 
-// API: God Mode (Simulate Disaster) - Protected by simplistic check for demo
+
 const GodModeSchema = z.object({
     waterLevel: z.number().optional(),
     rainfall: z.number().optional()
@@ -62,12 +62,11 @@ const GodModeSchema = z.object({
 
 app.post('/api/simulate', authenticateToken, authorizeRole('admin'), validate(GodModeSchema), (req, res) => {
     const newState = forceUpdate(req.body);
-    // Broadcast immediately
     io.emit('flood-update', newState);
     res.json({ message: 'Simulation Updated', state: newState });
 });
 
-// API: Get weather data for specific coordinates
+
 const WeatherQuerySchema = z.object({
     lat: z.number().min(-90).max(90),
     lng: z.number().min(-180).max(180)
@@ -78,7 +77,7 @@ app.get('/api/weather', async (req, res) => {
         const lat = parseFloat(req.query.lat);
         const lng = parseFloat(req.query.lng);
 
-        // Validate coordinates
+       
         const validated = WeatherQuerySchema.parse({ lat, lng });
 
         const weatherData = await fetchWeatherData(validated.lat, validated.lng);
