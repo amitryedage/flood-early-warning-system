@@ -227,20 +227,20 @@ const syncSatelliteIntelligence = async () => {
         const data = await getFloodRiskHeatmap(16.8524, 74.5815);
         updateSatelliteIntelligence(data);
         io.emit('flood-update', getCurrentState());
-        logger.info('🛰️  Geospatial intelligence loop synced');
+        logger.info('Geospatial intelligence loop synced');
     } catch (error) {
-        logger.error(`❌ Satellite sync failed: ${error.message}`);
+        logger.error(` Satellite sync failed: ${error.message}`);
     }
 };
 
-// Initial sync and then interval
+
 syncSatelliteIntelligence();
 setInterval(syncSatelliteIntelligence, 600000); // 10 minutes
 
-// Global Error Handler (Must be last)
+
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    logger.info(`🚀 Server running on port ${PORT}`);
+    logger.info(` Server running on port ${PORT}`);
 });
