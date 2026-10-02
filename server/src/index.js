@@ -154,9 +154,7 @@ app.post('/api/satellite/clear-cache', authenticateToken, authorizeRole('admin')
     });
 });
 
-/**
- * API: Subscribe for alerts
- */
+
 const SubscriptionSchema = z.object({
     contact: z.string().min(1),
     method: z.enum(['SMS', 'EMAIL']),
