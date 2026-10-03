@@ -61,12 +61,6 @@ We leverage the power of **Google Cloud** and **Google Maps Platform** to provid
 ---
 
 ## 🛠️ Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- Google Cloud Project with Billing Enabled
-- API Keys for Google Maps and Geocoding
-
   ### Setup
 1. **Clone the repository**
    ```bash
