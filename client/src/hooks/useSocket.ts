@@ -20,6 +20,7 @@ export interface FloodData {
         cloudiness: number | null;
         location: string | null;
     };
+    // Basic version need to improve this with optimize version 
     responders: Array<{ id: string; name: string; lat: number; lng: number; status: string }>;
     villages: Array<{ id: string; name: string; riskLevel: number; population: number; lat: number; lng: number; status: string; satelliteVerified?: boolean }>;
     tasks: Array<{ id: string; type: string; title: string; status: string; urgency: string; assignedTo: string; lat?: number; lng?: number }>;
