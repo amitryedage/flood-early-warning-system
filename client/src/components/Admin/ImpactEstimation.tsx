@@ -7,7 +7,7 @@ interface ImpactEstimationProps {
 }
 
 const ImpactEstimation: React.FC<ImpactEstimationProps> = ({ waterLevel, status }) => {
-    // Dynamic logic for impact
+    //Just Demo purpose that we have added this logic 
     const isCrisis = status === 'CRITICAL' || waterLevel > 14;
     const isWarning = status === 'WARNING' || waterLevel > 13;
 
